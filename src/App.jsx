@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search } from 'lucide-react';
+import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search } from 'lucide-react';
 import subjectsData from './data/subjects.json';
 
 export default function App() {
@@ -35,7 +35,6 @@ export default function App() {
       }
     };
 
-    // Check on initial page load if hash is already #admin
     if (window.location.hash === '#admin') {
       setIsAdminOpen(true);
     }
@@ -44,20 +43,6 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Secret keyboard shortcut: Ctrl + Shift + A (or Cmd + Shift + A on macOS)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-        e.preventDefault();
-        window.location.hash = '#admin';
-        setIsAdminOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // When closing the admin modal without logging in, clear the hash so it doesn't loop
   const handleCloseAdminModal = () => {
     setIsAdminOpen(false);
     if (!isAuthenticated) {
@@ -95,7 +80,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans selection:bg-blue-500 selection:text-white">
-      {/* Apple-style Navigation Bar */}
+      {/* Apple-style Navigation Bar (Admin button completely removed) */}
       <header className="sticky top-0 z-40 bg-[#f5f5f7]/80 backdrop-blur-md border-b border-[#d2d2d7]/60 px-8 py-4 flex justify-between items-center transition-all">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white font-bold text-xs">S</div>
@@ -117,14 +102,6 @@ export default function App() {
               Exit Admin
             </button>
           )}
-          {/* Subtle Admin Icon Link */}
-          <a 
-            href="#admin"
-            className="p-2 text-[#86868b] hover:text-[#1d1d1f] transition rounded-full"
-            title="Admin Access"
-          >
-            <Shield className="w-4 h-4" />
-          </a>
         </div>
       </header>
 
@@ -236,9 +213,7 @@ export default function App() {
                                 <FileText className="w-4 h-4 text-[#0071e3]" />
                                 <h4 className="text-sm font-semibold text-[#1d1d1f]">{file.title || file.name}</h4>
                               </div>
-                              {(file.description || file.summary) && (
-                                <p className="text-xs text-[#86868b] ml-6">{file.description || file.summary}</p>
-                              )}
+                              {(file.description || file.summary) && <p className="text-xs text-[#86868b] ml-6">{file.description || file.summary}</p>}
                               <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
                                 {file.size && <span>{file.size}</span>}
                                 {(file.instructor || file.author) && <span>• {file.instructor || file.author}</span>}
@@ -270,9 +245,7 @@ export default function App() {
                                 <FileText className="w-4 h-4 text-[#34c759]" />
                                 <h4 className="text-sm font-semibold text-[#1d1d1f]">{tut.title || tut.name}</h4>
                               </div>
-                              {(tut.description || tut.summary) && (
-                                <p className="text-xs text-[#86868b] ml-6">{tut.description || tut.summary}</p>
-                              )}
+                              {(tut.description || tut.summary) && <p className="text-xs text-[#86868b] ml-6">{tut.description || tut.summary}</p>}
                               <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
                                 {tut.size && <span>{tut.size}</span>}
                               </div>
@@ -344,7 +317,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Password Modal triggered by typing #admin in URL or clicking shield */}
+      {/* Password Modal */}
       {isAdminOpen && !isAuthenticated && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white/90 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
@@ -384,7 +357,7 @@ export default function App() {
   );
 }
 
-// Admin Dashboard Component
+// Fixed Admin Dashboard Component with Drag-and-Drop file handling support
 function AppleAdminDashboard({ subjects, setSubjects }) {
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
   const [resourceType, setResourceType] = useState('files');
@@ -394,6 +367,19 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
   const [fileSize, setFileSize] = useState('2.4 MB');
   const [fileUrl, setFileUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+
+  // Handle actual file upload selection from computer or drag-and-drop
+  const handleFilePicked = (uploadedFile) => {
+    if (uploadedFile) {
+      setTitle(uploadedFile.name);
+      // Automatically calculate human-readable file size
+      const sizeInMB = (uploadedFile.size / (1024 * 1024)).toFixed(1) + ' MB';
+      setFileSize(sizeInMB);
+      // Create a temporary local URL so it can be previewed immediately
+      const localUrl = URL.createObjectURL(uploadedFile);
+      setFileUrl(localUrl);
+    }
+  };
 
   const handleUploadSubmit = (e) => {
     e.preventDefault();
@@ -502,7 +488,7 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
             <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Direct File URL</label>
             <input 
               type="text" 
-              placeholder="https://..." 
+              placeholder="https://... or auto-filled" 
               value={fileUrl}
               onChange={(e) => setFileUrl(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -521,16 +507,34 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
           />
         </div>
 
+        {/* Real Working Drag & Drop / File Browser Box */}
         <div 
           onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
           onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(e.dataTransfer.files[0]) setTitle(e.dataTransfer.files[0].name); }}
-          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition ${
+          onDrop={(e) => { 
+            e.preventDefault(); 
+            setIsDragging(false); 
+            if(e.dataTransfer.files && e.dataTransfer.files[0]) {
+              handleFilePicked(e.dataTransfer.files[0]);
+            }
+          }}
+          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition relative ${
             isDragging ? 'border-[#0071e3] bg-[#0071e3]/5' : 'border-[#d2d2d7] bg-[#f5f5f7]/40 hover:border-[#86868b]'
           }`}
         >
-          <Upload className="w-6 h-6 text-[#0071e3] mx-auto mb-2" />
-          <p className="text-xs text-[#1d1d1f] font-medium">Drag & drop asset here or browse</p>
+          <input 
+            type="file" 
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            onChange={(e) => {
+              if(e.target.files && e.target.files[0]) {
+                handleFilePicked(e.target.files[0]);
+              }
+            }}
+          />
+          <Upload className="w-6 h-6 text-[#0071e3] mx-auto mb-2 pointer-events-none" />
+          <p className="text-xs text-[#1d1d1f] font-medium pointer-events-none">
+            {title && title !== '' ? `Selected: ${title}` : 'Drag & drop file here or click to browse'}
+          </p>
         </div>
 
         <button 
