@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search } from 'lucide-react';
+import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle } from 'lucide-react';
 import subjectsData from './data/subjects.json';
 
 export default function App() {
@@ -9,16 +9,13 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [viewMode, setViewMode] = useState('viewer'); 
 
-  // Navigation state
+  // Viewer State
   const [selectedBranch, setSelectedBranch] = useState('EIC');
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
   const [activeTab, setActiveTab] = useState('files');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Preview Modal state
   const [previewItem, setPreviewItem] = useState(null);
 
-  // Second Year Engineering Branches
   const branches = [
     { id: 'EIC', name: 'Electronics Instrumentation & Control (EIC)' },
     { id: 'CSE', name: 'Computer Science & Engineering (CSE)' },
@@ -27,18 +24,16 @@ export default function App() {
     { id: 'CIVIL', name: 'Civil Engineering (CIVIL)' }
   ];
 
-  // Listen to URL Hash changes (e.g., typing yoursite.com/#admin)
+  // Hash listener for #admin codeword
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash === '#admin') {
         setIsAdminOpen(true);
       }
     };
-
     if (window.location.hash === '#admin') {
       setIsAdminOpen(true);
     }
-
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -64,14 +59,14 @@ export default function App() {
 
   const currentSubjectData = subjects.find(s => s.id === selectedSubject) || subjects[0] || { name: 'Subject', files: [], tutorials: [] };
 
-  const filteredFiles = (currentSubjectData.files || []).filter(file => {
+  const filteredFiles = (currentSubjectData?.files || []).filter(file => {
     const title = (file.title || file.name || '').toLowerCase();
     const desc = (file.description || file.summary || '').toLowerCase();
     const q = searchQuery.toLowerCase();
     return title.includes(q) || desc.includes(q);
   });
 
-  const filteredTutorials = (currentSubjectData.tutorials || []).filter(tut => {
+  const filteredTutorials = (currentSubjectData?.tutorials || []).filter(tut => {
     const title = (tut.title || tut.name || '').toLowerCase();
     const desc = (tut.description || tut.summary || '').toLowerCase();
     const q = searchQuery.toLowerCase();
@@ -80,7 +75,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans selection:bg-blue-500 selection:text-white">
-      {/* Apple-style Navigation Bar (Admin button completely removed) */}
+      {/* Apple-style Navigation Bar */}
       <header className="sticky top-0 z-40 bg-[#f5f5f7]/80 backdrop-blur-md border-b border-[#d2d2d7]/60 px-8 py-4 flex justify-between items-center transition-all">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white font-bold text-xs">S</div>
@@ -90,19 +85,17 @@ export default function App() {
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
-          {viewMode === 'admin' && (
-            <button 
-              onClick={() => {
-                setViewMode('viewer');
-                window.location.hash = '';
-              }}
-              className="text-xs font-medium bg-[#e8e8ed] hover:bg-[#d2d2d7] px-3.5 py-1.5 rounded-full transition"
-            >
-              Exit Admin
-            </button>
-          )}
-        </div>
+        {viewMode === 'admin' && (
+          <button 
+            onClick={() => {
+              setViewMode('viewer');
+              window.location.hash = '';
+            }}
+            className="text-xs font-medium bg-[#1d1d1f] text-white hover:bg-black px-4 py-2 rounded-full transition shadow-sm"
+          >
+            Exit Admin Panel
+          </button>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -142,7 +135,7 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Left Column: Subjects Menu */}
+                {/* Subjects Navigation */}
                 <div className="lg:col-span-1 space-y-2">
                   <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#86868b] px-3 mb-3">EIC Subjects</h3>
                   {subjects.map(subject => (
@@ -164,7 +157,7 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Right Column: Content Viewer */}
+                {/* Content Viewer */}
                 <div className="lg:col-span-3 bg-white/80 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#f5f5f7]">
                     <div>
@@ -234,7 +227,7 @@ export default function App() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-[#86868b] text-center py-10">No matching class files found for your search.</p>
+                        <p className="text-xs text-[#86868b] text-center py-10">No matching class files found.</p>
                       )
                     ) : (
                       filteredTutorials.length > 0 ? (
@@ -265,7 +258,7 @@ export default function App() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-[#86868b] text-center py-10">No matching tutorial practice sheets found for your search.</p>
+                        <p className="text-xs text-[#86868b] text-center py-10">No matching tutorial practice sheets found.</p>
                       )
                     )}
                   </div>
@@ -274,11 +267,11 @@ export default function App() {
             )}
           </div>
         ) : (
-          <AppleAdminDashboard subjects={subjects} setSubjects={setSubjects} />
+          <AppleAdminSuite subjects={subjects} setSubjects={setSubjects} />
         )}
       </main>
 
-      {/* Preview Modal */}
+      {/* In-Browser Preview Modal */}
       {previewItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
           <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
@@ -317,22 +310,19 @@ export default function App() {
         </div>
       )}
 
-      {/* Password Modal */}
+      {/* Password Authentication Modal */}
       {isAdminOpen && !isAuthenticated && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white/90 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
-            <button 
-              onClick={handleCloseAdminModal}
-              className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full"
-            >
+            <button onClick={handleCloseAdminModal} className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full">
               <X className="w-4 h-4" />
             </button>
             <div className="text-center mb-6">
               <div className="w-12 h-12 bg-[#0071e3]/10 text-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <Lock className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold text-xl tracking-tight">Admin Codeword Detected</h3>
-              <p className="text-xs text-[#86868b] mt-1">Enter your password to unlock resource publishing.</p>
+              <h3 className="font-semibold text-xl tracking-tight">Admin Authorization</h3>
+              <p className="text-xs text-[#86868b] mt-1">Enter your password to unlock the admin suite.</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <input 
@@ -343,10 +333,7 @@ export default function App() {
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
                 autoFocus
               />
-              <button 
-                type="submit"
-                className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-[#0071e3]/20"
-              >
+              <button type="submit" className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-[#0071e3]/20">
                 Continue
               </button>
             </form>
@@ -357,8 +344,12 @@ export default function App() {
   );
 }
 
-// Fixed Admin Dashboard Component with Drag-and-Drop file handling support
-function AppleAdminDashboard({ subjects, setSubjects }) {
+// Full Admin Suite: Upload, Edit & Delete Modes with Search
+function AppleAdminSuite({ subjects, setSubjects }) {
+  const [adminTab, setAdminTab] = useState('upload'); // 'upload', 'edit', 'delete'
+  const [manageSearch, setManageSearch] = useState('');
+
+  // Upload state
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
   const [resourceType, setResourceType] = useState('files');
   const [title, setTitle] = useState('');
@@ -368,16 +359,15 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
   const [fileUrl, setFileUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
-  // Handle actual file upload selection from computer or drag-and-drop
+  // Edit modal state
+  const [editingTarget, setEditingTarget] = useState(null);
+
   const handleFilePicked = (uploadedFile) => {
     if (uploadedFile) {
       setTitle(uploadedFile.name);
-      // Automatically calculate human-readable file size
       const sizeInMB = (uploadedFile.size / (1024 * 1024)).toFixed(1) + ' MB';
       setFileSize(sizeInMB);
-      // Create a temporary local URL so it can be previewed immediately
-      const localUrl = URL.createObjectURL(uploadedFile);
-      setFileUrl(localUrl);
+      setFileUrl(URL.createObjectURL(uploadedFile));
     }
   };
 
@@ -385,7 +375,7 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
     e.preventDefault();
     if (!title) return alert('Please enter a title');
 
-    const updatedSubjects = subjects.map((subj) => {
+    const updated = subjects.map((subj) => {
       if (subj.id === selectedSubject) {
         const newItem = { 
           title, 
@@ -404,146 +394,392 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
       return subj;
     });
 
-    setSubjects(updatedSubjects);
-    alert('Resource added successfully to EIC branch portal!');
+    setSubjects(updated);
+    alert('Resource added successfully!');
     setTitle('');
     setDescription('');
     setInstructor('');
     setFileUrl('');
   };
 
+  // Compile all files across all subjects with metadata for easy searching in Edit/Delete
+  const allResources = [];
+  subjects.forEach(subj => {
+    (subj.files || []).forEach((file, index) => {
+      allResources.push({ 
+        ...file, 
+        title: file.title || file.name,
+        subjectId: subj.id, 
+        subjectName: subj.name, 
+        category: 'files', 
+        index 
+      });
+    });
+    (subj.tutorials || []).forEach((tut, index) => {
+      allResources.push({ 
+        ...tut, 
+        title: tut.title || tut.name,
+        subjectId: subj.id, 
+        subjectName: subj.name, 
+        category: 'tutorials', 
+        index 
+      });
+    });
+  });
+
+  const filteredManageResources = allResources.filter(res => {
+    const q = manageSearch.toLowerCase();
+    const title = (res.title || res.name || '').toLowerCase();
+    const subj = (res.subjectName || '').toLowerCase();
+    const desc = (res.description || res.summary || '').toLowerCase();
+    return title.includes(q) || subj.includes(q) || desc.includes(q);
+  });
+
+  const handleDelete = (resource) => {
+    if (confirm(`Are you sure you want to delete "${resource.title}"?`)) {
+      const updated = subjects.map(subj => {
+        if (subj.id === resource.subjectId) {
+          const list = [...subj[resource.category]];
+          list.splice(resource.index, 1);
+          return { ...subj, [resource.category]: list };
+        }
+        return subj;
+      });
+      setSubjects(updated);
+    }
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    const updated = subjects.map(subj => {
+      if (subj.id === editingTarget.subjectId) {
+        const list = [...subj[editingTarget.category]];
+        list[editingTarget.index] = {
+          ...list[editingTarget.index],
+          title: editingTarget.title,
+          name: editingTarget.title,
+          description: editingTarget.description,
+          summary: editingTarget.description,
+          instructor: editingTarget.instructor,
+          author: editingTarget.instructor,
+          size: editingTarget.size,
+          url: editingTarget.url,
+          downloadUrl: editingTarget.url,
+          type: editingTarget.type || 'PDF'
+        };
+        return { ...subj, [editingTarget.category]: list };
+      }
+      return subj;
+    });
+    setSubjects(updated);
+    setEditingTarget(null);
+    alert('Changes saved successfully!');
+  };
+
   return (
-    <div className="max-w-xl mx-auto bg-white/90 backdrop-blur-2xl border border-[#d2d2d7] rounded-3xl p-8 shadow-xl">
-      <div className="flex items-center space-x-4 mb-8 pb-6 border-b border-[#f5f5f7]">
-        <div className="w-12 h-12 bg-[#0071e3]/10 text-[#0071e3] rounded-2xl flex items-center justify-center">
-          <Upload className="w-6 h-6" />
-        </div>
+    <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-2xl border border-[#d2d2d7] rounded-3xl p-8 shadow-xl">
+      {/* Control Switcher Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-[#f5f5f7]">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">EIC Resource Publisher</h2>
-          <p className="text-xs text-[#86868b]">Upload materials directly to EIC subjects.</p>
+          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">EIC Curriculum Manager</h2>
+          <p className="text-xs text-[#86868b]">Upload, edit details, or remove academic materials.</p>
+        </div>
+
+        <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7]">
+          <button
+            onClick={() => setAdminTab('upload')}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+              adminTab === 'upload' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+            }`}
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-[#0071e3]" />
+            <span>Upload</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('edit')}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+              adminTab === 'edit' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+            }`}
+          >
+            <Edit3 className="w-3.5 h-3.5 text-[#34c759]" />
+            <span>Edit</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('delete')}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+              adminTab === 'delete' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+            }`}
+          >
+            <Trash2 className="w-3.5 h-3.5 text-[#ff3b30]" />
+            <span>Delete</span>
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleUploadSubmit} className="space-y-5">
-        <div>
-          <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Target Subject</label>
-          <select 
-            value={selectedSubject} 
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
-          >
-            {subjects.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+      {/* --- TAB 1: UPLOAD --- */}
+      {adminTab === 'upload' && (
+        <form onSubmit={handleUploadSubmit} className="space-y-5">
           <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Category</label>
+            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Target Subject</label>
             <select 
-              value={resourceType} 
-              onChange={(e) => setResourceType(e.target.value)}
+              value={selectedSubject} 
+              onChange={(e) => setSelectedSubject(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
             >
-              <option value="files">Class PPTs & Notes</option>
-              <option value="tutorials">Tutorial Practice Sheet</option>
+              {subjects.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
             </select>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Category</label>
+              <select 
+                value={resourceType} 
+                onChange={(e) => setResourceType(e.target.value)}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              >
+                <option value="files">Class PPTs & Notes</option>
+                <option value="tutorials">Tutorial Practice Sheet</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">File Size</label>
+              <input 
+                type="text" 
+                value={fileSize} 
+                onChange={(e) => setFileSize(e.target.value)}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">File Size</label>
+            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Resource Title</label>
             <input 
               type="text" 
-              value={fileSize} 
-              onChange={(e) => setFileSize(e.target.value)}
+              placeholder="e.g., Tutorial Sheet 2 / State Space Analysis" 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              required
             />
           </div>
-        </div>
 
-        <div>
-          <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Resource Title</label>
-          <input 
-            type="text" 
-            placeholder="e.g., Tutorial Sheet 2 / Lecture Slides" 
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
-            required
-          />
-        </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Instructor / Author</label>
+              <input 
+                type="text" 
+                placeholder="e.g., Prof. Smith" 
+                value={instructor}
+                onChange={(e) => setInstructor(e.target.value)}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Direct File URL</label>
+              <input 
+                type="text" 
+                placeholder="https://... or auto-filled" 
+                value={fileUrl}
+                onChange={(e) => setFileUrl(e.target.value)}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Instructor / Author</label>
-            <input 
-              type="text" 
-              placeholder="e.g., Prof. Smith" 
-              value={instructor}
-              onChange={(e) => setInstructor(e.target.value)}
-              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Description / Topics</label>
+            <textarea 
+              placeholder="Add summary notes or topics covered..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows="2"
+              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition resize-none"
             />
           </div>
-          <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Direct File URL</label>
-            <input 
-              type="text" 
-              placeholder="https://... or auto-filled" 
-              value={fileUrl}
-              onChange={(e) => setFileUrl(e.target.value)}
-              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
-            />
-          </div>
-        </div>
 
-        <div>
-          <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Description / Topics</label>
-          <textarea 
-            placeholder="Add summary notes or topics covered..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows="2"
-            className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition resize-none"
-          />
-        </div>
-
-        {/* Real Working Drag & Drop / File Browser Box */}
-        <div 
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => { 
-            e.preventDefault(); 
-            setIsDragging(false); 
-            if(e.dataTransfer.files && e.dataTransfer.files[0]) {
-              handleFilePicked(e.dataTransfer.files[0]);
-            }
-          }}
-          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition relative ${
-            isDragging ? 'border-[#0071e3] bg-[#0071e3]/5' : 'border-[#d2d2d7] bg-[#f5f5f7]/40 hover:border-[#86868b]'
-          }`}
-        >
-          <input 
-            type="file" 
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-            onChange={(e) => {
-              if(e.target.files && e.target.files[0]) {
-                handleFilePicked(e.target.files[0]);
+          {/* Drag & Drop Upload Zone */}
+          <div 
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => { 
+              e.preventDefault(); 
+              setIsDragging(false); 
+              if(e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFilePicked(e.dataTransfer.files[0]);
               }
             }}
-          />
-          <Upload className="w-6 h-6 text-[#0071e3] mx-auto mb-2 pointer-events-none" />
-          <p className="text-xs text-[#1d1d1f] font-medium pointer-events-none">
-            {title && title !== '' ? `Selected: ${title}` : 'Drag & drop file here or click to browse'}
-          </p>
-        </div>
+            className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition relative ${
+              isDragging ? 'border-[#0071e3] bg-[#0071e3]/5' : 'border-[#d2d2d7] bg-[#f5f5f7]/40 hover:border-[#86868b]'
+            }`}
+          >
+            <input 
+              type="file" 
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              onChange={(e) => {
+                if(e.target.files && e.target.files[0]) {
+                  handleFilePicked(e.target.files[0]);
+                }
+              }}
+            />
+            <Upload className="w-6 h-6 text-[#0071e3] mx-auto mb-2 pointer-events-none" />
+            <p className="text-xs text-[#1d1d1f] font-medium pointer-events-none">
+              {title && title !== '' ? `Selected: ${title}` : 'Drag & drop file here or click to browse'}
+            </p>
+          </div>
 
-        <button 
-          type="submit"
-          className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20"
-        >
-          Publish to EIC Curriculum
-        </button>
-      </form>
+          <button type="submit" className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20">
+            Publish to EIC Curriculum
+          </button>
+        </form>
+      )}
+
+      {/* --- TAB 2 & 3: EDIT & DELETE (WITH SEARCH BAR) --- */}
+      {(adminTab === 'edit' || adminTab === 'delete') && (
+        <div>
+          {/* Instant Search Bar */}
+          <div className="relative mb-6">
+            <Search className="w-4 h-4 text-[#86868b] absolute left-4 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              placeholder={`Search files to ${adminTab} by title, subject, or description...`}
+              value={manageSearch}
+              onChange={(e) => setManageSearch(e.target.value)}
+              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
+            />
+          </div>
+
+          {/* Results List */}
+          <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+            {filteredManageResources.length > 0 ? (
+              filteredManageResources.map((res, idx) => (
+                <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
+                  <div className="pr-4">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${res.category === 'files' ? 'bg-[#0071e3]/10 text-[#0071e3]' : 'bg-[#34c759]/10 text-[#34c759]'}`}>
+                        {res.category === 'files' ? 'PPT/Notes' : 'Tutorial'}
+                      </span>
+                      <h4 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-sm">{res.title}</h4>
+                    </div>
+                    <p className="text-[11px] text-[#86868b]">{res.subjectName} • {res.size || 'N/A'}</p>
+                  </div>
+
+                  <div className="shrink-0">
+                    {adminTab === 'edit' ? (
+                      <button
+                        onClick={() => setEditingTarget({ ...res })}
+                        className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDelete(res)}
+                        className="px-3 py-2 bg-white hover:bg-[#ff3b30]/10 text-[#ff3b30] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-[#86868b] text-center py-10">No matching materials found.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- EDIT MODAL --- */}
+      {editingTarget && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-[#d2d2d7] rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative">
+            <button 
+              onClick={() => setEditingTarget(null)} 
+              className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="font-semibold text-lg tracking-tight mb-1">Edit File Details</h3>
+            <p className="text-xs text-[#86868b] mb-6">Subject: {editingTarget.subjectName}</p>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Title</label>
+                <input 
+                  type="text" 
+                  value={editingTarget.title}
+                  onChange={(e) => setEditingTarget({ ...editingTarget, title: e.target.value })}
+                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Instructor</label>
+                  <input 
+                    type="text" 
+                    value={editingTarget.instructor || ''}
+                    onChange={(e) => setEditingTarget({ ...editingTarget, instructor: e.target.value })}
+                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Size</label>
+                  <input 
+                    type="text" 
+                    value={editingTarget.size || ''}
+                    onChange={(e) => setEditingTarget({ ...editingTarget, size: e.target.value })}
+                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Direct File URL</label>
+                <input 
+                  type="text" 
+                  value={editingTarget.url || ''}
+                  onChange={(e) => setEditingTarget({ ...editingTarget, url: e.target.value })}
+                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Description</label>
+                <textarea 
+                  rows="2"
+                  value={editingTarget.description || ''}
+                  onChange={(e) => setEditingTarget({ ...editingTarget, description: e.target.value })}
+                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3] resize-none"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setEditingTarget(null)}
+                  className="w-1/2 bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] font-medium py-3 rounded-xl text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="w-1/2 bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-xs transition shadow-md shadow-[#0071e3]/20"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
