@@ -344,9 +344,9 @@ export default function App() {
   );
 }
 
-// Full Admin Suite: Upload, Edit & Delete Modes with Search
+// Full Admin Suite: Upload, Edit & Delete with Auto File Size & Precise ID Deletion
 function AppleAdminSuite({ subjects, setSubjects }) {
-  const [adminTab, setAdminTab] = useState('upload'); // 'upload', 'edit', 'delete'
+  const [adminTab, setAdminTab] = useState('upload');
   const [manageSearch, setManageSearch] = useState('');
 
   // Upload state
@@ -355,41 +355,60 @@ function AppleAdminSuite({ subjects, setSubjects }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [instructor, setInstructor] = useState('');
-  const [fileSize, setFileSize] = useState('2.4 MB');
+  const [fileSize, setFileSize] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
   // Edit modal state
   const [editingTarget, setEditingTarget] = useState(null);
 
-  const handleFilePicked = (uploadedFile) => {
-    if (uploadedFile) {
-      setTitle(uploadedFile.name);
-      const sizeInMB = (uploadedFile.size / (1024 * 1024)).toFixed(1) + ' MB';
-      setFileSize(sizeInMB);
-      setFileUrl(URL.createObjectURL(uploadedFile));
+  // Automatic file size and metadata detection
+  const handleFilePicked = (file) => {
+    if (!file) return;
+
+    // Auto-detect title if empty
+    if (!title) {
+      setTitle(file.name);
     }
+
+    // Auto-calculate human-readable size
+    let formattedSize = '';
+    if (file.size < 1024 * 1024) {
+      formattedSize = `${(file.size / 1024).toFixed(1)} KB`;
+    } else {
+      formattedSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    setFileSize(formattedSize);
+
+    // Create local previewable URL
+    const localUrl = URL.createObjectURL(file);
+    setFileUrl(localUrl);
   };
 
   const handleUploadSubmit = (e) => {
     e.preventDefault();
     if (!title) return alert('Please enter a title');
 
+    const newItem = {
+      id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title,
+      name: title,
+      description,
+      summary: description,
+      instructor,
+      author: instructor,
+      type: 'PDF',
+      size: fileSize || '1.0 MB',
+      url: fileUrl || '#',
+      downloadUrl: fileUrl || '#'
+    };
+
     const updated = subjects.map((subj) => {
       if (subj.id === selectedSubject) {
-        const newItem = { 
-          title, 
-          name: title,
-          description, 
-          summary: description,
-          instructor, 
-          author: instructor,
-          type: 'PDF', 
-          size: fileSize, 
-          url: fileUrl || '#',
-          downloadUrl: fileUrl || '#'
+        return {
+          ...subj,
+          [resourceType]: [...subj[resourceType], newItem]
         };
-        return { ...subj, [resourceType]: [...(subj[resourceType] || []), newItem] };
       }
       return subj;
     });
@@ -399,30 +418,31 @@ function AppleAdminSuite({ subjects, setSubjects }) {
     setTitle('');
     setDescription('');
     setInstructor('');
+    setFileSize('');
     setFileUrl('');
   };
 
-  // Compile all files across all subjects with metadata for easy searching in Edit/Delete
+  // Compile resources with unique IDs for exact matching
   const allResources = [];
   subjects.forEach(subj => {
-    (subj.files || []).forEach((file, index) => {
-      allResources.push({ 
-        ...file, 
+    (subj.files || []).forEach((file, idx) => {
+      allResources.push({
+        ...file,
         title: file.title || file.name,
-        subjectId: subj.id, 
-        subjectName: subj.name, 
-        category: 'files', 
-        index 
+        uniqueKey: file.id || `${subj.id}-files-${idx}`,
+        subjectId: subj.id,
+        subjectName: subj.name,
+        category: 'files'
       });
     });
-    (subj.tutorials || []).forEach((tut, index) => {
-      allResources.push({ 
-        ...tut, 
+    (subj.tutorials || []).forEach((tut, idx) => {
+      allResources.push({
+        ...tut,
         title: tut.title || tut.name,
-        subjectId: subj.id, 
-        subjectName: subj.name, 
-        category: 'tutorials', 
-        index 
+        uniqueKey: tut.id || `${subj.id}-tutorials-${idx}`,
+        subjectId: subj.id,
+        subjectName: subj.name,
+        category: 'tutorials'
       });
     });
   });
@@ -435,42 +455,56 @@ function AppleAdminSuite({ subjects, setSubjects }) {
     return title.includes(q) || subj.includes(q) || desc.includes(q);
   });
 
-  const handleDelete = (resource) => {
-    if (confirm(`Are you sure you want to delete "${resource.title}"?`)) {
+  // Precise deletion using uniqueKey matching
+  const handleDelete = (resourceToDelete) => {
+    if (confirm(`Are you sure you want to delete "${resourceToDelete.title}"?`)) {
       const updated = subjects.map(subj => {
-        if (subj.id === resource.subjectId) {
-          const list = [...subj[resource.category]];
-          list.splice(resource.index, 1);
-          return { ...subj, [resource.category]: list };
+        if (subj.id === resourceToDelete.subjectId) {
+          return {
+            ...subj,
+            [resourceToDelete.category]: subj[resourceToDelete.category].filter(
+              (item, idx) => (item.id || `${subj.id}-${resourceToDelete.category}-${idx}`) !== resourceToDelete.uniqueKey
+            )
+          };
         }
         return subj;
       });
+
       setSubjects(updated);
     }
   };
 
+  // Precise edit save using uniqueKey matching
   const handleSaveEdit = (e) => {
     e.preventDefault();
     const updated = subjects.map(subj => {
       if (subj.id === editingTarget.subjectId) {
-        const list = [...subj[editingTarget.category]];
-        list[editingTarget.index] = {
-          ...list[editingTarget.index],
-          title: editingTarget.title,
-          name: editingTarget.title,
-          description: editingTarget.description,
-          summary: editingTarget.description,
-          instructor: editingTarget.instructor,
-          author: editingTarget.instructor,
-          size: editingTarget.size,
-          url: editingTarget.url,
-          downloadUrl: editingTarget.url,
-          type: editingTarget.type || 'PDF'
+        return {
+          ...subj,
+          [editingTarget.category]: subj[editingTarget.category].map((item, idx) => {
+            const currentKey = item.id || `${subj.id}-${editingTarget.category}-${idx}`;
+            if (currentKey === editingTarget.uniqueKey) {
+              return {
+                ...item,
+                title: editingTarget.title,
+                name: editingTarget.title,
+                description: editingTarget.description,
+                summary: editingTarget.description,
+                instructor: editingTarget.instructor,
+                author: editingTarget.instructor,
+                size: editingTarget.size,
+                url: editingTarget.url,
+                downloadUrl: editingTarget.url,
+                type: editingTarget.type || 'PDF'
+              };
+            }
+            return item;
+          })
         };
-        return { ...subj, [editingTarget.category]: list };
       }
       return subj;
     });
+
     setSubjects(updated);
     setEditingTarget(null);
     alert('Changes saved successfully!');
@@ -516,7 +550,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
         </div>
       </div>
 
-      {/* --- TAB 1: UPLOAD --- */}
+      {/* Upload View */}
       {adminTab === 'upload' && (
         <form onSubmit={handleUploadSubmit} className="space-y-5">
           <div>
@@ -545,9 +579,12 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">File Size</label>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">
+                File Size <span className="text-[10px] text-[#0071e3] lowercase font-normal">(auto-detected)</span>
+              </label>
               <input 
                 type="text" 
+                placeholder="Auto-calculates on file drop"
                 value={fileSize} 
                 onChange={(e) => setFileSize(e.target.value)}
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -582,7 +619,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Direct File URL</label>
               <input 
                 type="text" 
-                placeholder="https://... or auto-filled" 
+                placeholder="Auto-generated or paste cloud link" 
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -601,14 +638,14 @@ function AppleAdminSuite({ subjects, setSubjects }) {
             />
           </div>
 
-          {/* Drag & Drop Upload Zone */}
+          {/* Drag & Drop Upload Zone with Size Auto-Detection */}
           <div 
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={(e) => { 
               e.preventDefault(); 
               setIsDragging(false); 
-              if(e.dataTransfer.files && e.dataTransfer.files[0]) {
+              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
                 handleFilePicked(e.dataTransfer.files[0]);
               }
             }}
@@ -620,15 +657,20 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               type="file" 
               className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               onChange={(e) => {
-                if(e.target.files && e.target.files[0]) {
+                if (e.target.files && e.target.files[0]) {
                   handleFilePicked(e.target.files[0]);
                 }
               }}
             />
             <Upload className="w-6 h-6 text-[#0071e3] mx-auto mb-2 pointer-events-none" />
             <p className="text-xs text-[#1d1d1f] font-medium pointer-events-none">
-              {title && title !== '' ? `Selected: ${title}` : 'Drag & drop file here or click to browse'}
+              {title ? `Selected: ${title}` : 'Drag & drop file here or click to browse'}
             </p>
+            {fileSize && (
+              <p className="text-[11px] text-[#0071e3] mt-1 pointer-events-none font-medium">
+                Detected Size: {fileSize}
+              </p>
+            )}
           </div>
 
           <button type="submit" className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20">
@@ -637,26 +679,24 @@ function AppleAdminSuite({ subjects, setSubjects }) {
         </form>
       )}
 
-      {/* --- TAB 2 & 3: EDIT & DELETE (WITH SEARCH BAR) --- */}
+      {/* Edit & Delete Search View */}
       {(adminTab === 'edit' || adminTab === 'delete') && (
         <div>
-          {/* Instant Search Bar */}
           <div className="relative mb-6">
             <Search className="w-4 h-4 text-[#86868b] absolute left-4 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
-              placeholder={`Search files to ${adminTab} by title, subject, or description...`}
+              placeholder={`Search files to ${adminTab} by title or subject...`}
               value={manageSearch}
               onChange={(e) => setManageSearch(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
             />
           </div>
 
-          {/* Results List */}
           <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
             {filteredManageResources.length > 0 ? (
-              filteredManageResources.map((res, idx) => (
-                <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
+              filteredManageResources.map((res) => (
+                <div key={res.uniqueKey} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
                   <div className="pr-4">
                     <div className="flex items-center space-x-2 mb-1">
                       <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${res.category === 'files' ? 'bg-[#0071e3]/10 text-[#0071e3]' : 'bg-[#34c759]/10 text-[#34c759]'}`}>
@@ -695,7 +735,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
         </div>
       )}
 
-      {/* --- EDIT MODAL --- */}
+      {/* Edit Modal */}
       {editingTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white border border-[#d2d2d7] rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative">
