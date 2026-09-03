@@ -27,6 +27,13 @@ const EIC_SUBJECTS = [
   { id: 'ai', name: 'AI for Engineers' }
 ];
 
+function withTimeout(promise, timeoutMs = 10000, errorMsg = 'Database request timed out') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), timeoutMs))
+  ]);
+}
+
 export function parseDriveLink(inputUrl) {
   if (!inputUrl) return { downloadUrl: '#', previewUrl: '#' };
   const match = inputUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || inputUrl.match(/id=([a-zA-Z0-9_-]+)/);
@@ -67,7 +74,11 @@ export default function App() {
   const fetchResources = async () => {
     try {
       setLoading(true);
-      const querySnapshot = await getDocs(collection(db, 'resources'));
+      const querySnapshot = await withTimeout(
+        getDocs(collection(db, 'resources')),
+        8000,
+        'Could not fetch resources from Firestore'
+      );
       const items = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -381,19 +392,23 @@ function AppleAdminSuite({ resources, onDataChange }) {
       const { downloadUrl, previewUrl } = parseDriveLink(fileUrl);
       const subjectObj = EIC_SUBJECTS.find(s => s.id === selectedSubject);
 
-      await addDoc(collection(db, 'resources'), {
-        title,
-        description,
-        instructor,
-        size: fileSize || 'PDF Document',
-        url: fileUrl,
-        downloadUrl,
-        previewUrl,
-        subjectId: selectedSubject,
-        subjectName: subjectObj ? subjectObj.name : selectedSubject,
-        category: resourceType,
-        createdAt: Date.now()
-      });
+      await withTimeout(
+        addDoc(collection(db, 'resources'), {
+          title,
+          description,
+          instructor,
+          size: fileSize || 'PDF Document',
+          url: fileUrl,
+          downloadUrl,
+          previewUrl,
+          subjectId: selectedSubject,
+          subjectName: subjectObj ? subjectObj.name : selectedSubject,
+          category: resourceType,
+          createdAt: Date.now()
+        }),
+        8000,
+        'Firestore write timed out. Please make sure your Firestore Database Security Rules allow read/write.'
+      );
 
       alert('Resource permanently saved to Firestore database!');
       setTitle('');
@@ -403,8 +418,8 @@ function AppleAdminSuite({ resources, onDataChange }) {
       setFileUrl('');
       onDataChange();
     } catch (err) {
-      console.error(err);
-      alert('Failed to save to database. Check Firestore permissions.');
+      console.error("Firestore write error: ", err);
+      alert(`Save failed: ${err.message || err}\n\nTip: In the Firebase Console, make sure Firestore Database is created and Rules are set to: allow read, write: if true;`);
     } finally {
       setIsSubmitting(false);
     }
@@ -413,12 +428,12 @@ function AppleAdminSuite({ resources, onDataChange }) {
   const handleDelete = async (resource) => {
     if (confirm(`Permanently delete "${resource.title}" from the database?`)) {
       try {
-        await deleteDoc(doc(db, 'resources', resource.id));
+        await withTimeout(deleteDoc(doc(db, 'resources', resource.id)), 8000, 'Firestore delete timed out.');
         alert('File record deleted!');
         onDataChange();
       } catch (err) {
         console.error(err);
-        alert('Failed to delete.');
+        alert('Failed to delete: ' + (err.message || err));
       }
     }
   };
@@ -429,7 +444,7 @@ function AppleAdminSuite({ resources, onDataChange }) {
       const { downloadUrl, previewUrl } = parseDriveLink(editingTarget.url);
       const docRef = doc(db, 'resources', editingTarget.id);
 
-      await updateDoc(docRef, {
+      await withTimeout(updateDoc(docRef, {
         title: editingTarget.title,
         description: editingTarget.description,
         instructor: editingTarget.instructor,
@@ -437,14 +452,14 @@ function AppleAdminSuite({ resources, onDataChange }) {
         url: editingTarget.url,
         downloadUrl,
         previewUrl
-      });
+      }), 8000, 'Firestore update timed out.');
 
       setEditingTarget(null);
       alert('Record updated!');
       onDataChange();
     } catch (err) {
       console.error(err);
-      alert('Failed to update.');
+      alert('Failed to update: ' + (err.message || err));
     }
   };
 
