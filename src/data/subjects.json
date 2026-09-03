@@ -1,0 +1,837 @@
+[
+  {
+    "id": "dsa",
+    "name": "Data Structures & Algorithms",
+    "code": "CS-301",
+    "icon": "Binary",
+    "color": "emerald",
+    "gradient": "from-emerald-500/20 to-teal-500/20",
+    "borderGlow": "group-hover:border-emerald-500/50",
+    "accentColor": "#10b981",
+    "description": "Fundamental data structures, algorithmic paradigms, tree traversals, dynamic programming, and complexity analysis.",
+    "instructor": "Dr. Alan Turing & Prof. Grace Hopper",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "dsa-f1",
+        "name": "Lecture 04: Red-Black Trees & Balanced BSTs.pdf",
+        "type": "PDF",
+        "size": "5.4 MB",
+        "uploadedAt": "2026-08-24",
+        "week": "Week 4",
+        "author": "Dr. Alan Turing",
+        "pages": 42,
+        "summary": "Deep dive into Red-Black Tree rotation invariants, color flip properties, logarithmic search proofs, and node balancing algorithms.",
+        "tags": ["Trees", "Balancing", "Log-Time", "Core"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/dsa-lecture-04.pdf"
+      },
+      {
+        "id": "dsa-f2",
+        "name": "Lecture 07: Dynamic Programming Masterclass.pptx",
+        "type": "PPT",
+        "size": "14.2 MB",
+        "uploadedAt": "2026-08-29",
+        "week": "Week 7",
+        "author": "Prof. Grace Hopper",
+        "slides": 36,
+        "summary": "Slide deck covering memoization vs. tabulation, 0/1 Knapsack problem variants, Longest Common Subsequence, and matrix chain multiplication.",
+        "tags": ["DP", "Optimization", "Memoization"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/dp-masterclass.pptx"
+      },
+      {
+        "id": "dsa-f3",
+        "name": "Lab 02: Graph Traversal Algorithms (BFS & DFS).pdf",
+        "type": "PDF",
+        "size": "3.8 MB",
+        "uploadedAt": "2026-08-18",
+        "week": "Week 2",
+        "author": "Teaching Assistant Team",
+        "pages": 18,
+        "summary": "Adjacency matrix vs adjacency list representations, topological sort, cycle detection in directed graphs, and Dijkstra's algorithm implementation hints.",
+        "tags": ["Graphs", "BFS", "DFS", "Lab"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/dsa-lab-02.pdf"
+      },
+      {
+        "id": "dsa-f4",
+        "name": "Lecture 10: Advanced Heap Structures & Priority Queues.pptx",
+        "type": "PPT",
+        "size": "9.1 MB",
+        "uploadedAt": "2026-09-01",
+        "week": "Week 10",
+        "author": "Dr. Alan Turing",
+        "slides": 28,
+        "summary": "Binary heaps, Fibonacci heaps amortized cost breakdown, binomial queues, and real-world OS scheduler queue implementations.",
+        "tags": ["Heaps", "Priority Queues", "Amortized"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/heaps.pptx"
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "dsa-t1",
+        "title": "Mastering Dynamic Programming from Scratch",
+        "type": "Video",
+        "duration": "42 mins",
+        "instructor": "Prof. Grace Hopper",
+        "uploadedAt": "2026-08-28",
+        "thumbnail": "https://images.unsplash.com/photo-1516116211227-bbc13c744be1?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/oBt53YbR9Kk",
+        "externalUrl": "https://youtube.com",
+        "description": "Visual intuition behind sub-problem decomposition, state transitions, and space-complexity optimization techniques from O(N) to O(1).",
+        "tags": ["DP", "Video", "Must Watch"]
+      },
+      {
+        "id": "dsa-t2",
+        "title": "Graph Algorithms & Shortest Paths Interactive Walkthrough",
+        "type": "Video",
+        "duration": "35 mins",
+        "instructor": "Dr. Alan Turing",
+        "uploadedAt": "2026-08-30",
+        "thumbnail": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/GazC3A4OQTE",
+        "externalUrl": "https://youtube.com",
+        "description": "Step-by-step code demonstration of Dijkstra's algorithm using minimum priority queues in JavaScript and C++.",
+        "tags": ["Dijkstra", "Shortest Path", "Graphs"]
+      },
+      {
+        "id": "dsa-t3",
+        "title": "Interactive Guide: Asymptotic Notation (Big-O, Big-Theta, Big-Omega)",
+        "type": "Guide",
+        "duration": "15 min read",
+        "instructor": "DSA TA Guild",
+        "uploadedAt": "2026-08-15",
+        "thumbnail": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "",
+        "externalUrl": "https://en.wikipedia.org/wiki/Big_O_notation",
+        "description": "A comprehensive cheat sheet and reference guide for runtime complexities of sorting, searching, tree traversals, and hash map operations.",
+        "steps": [
+          "Understanding limit definitions of Big-O vs Big-Omega",
+          "Master theorem recurrence relation shortcuts",
+          "Space-time trade-offs in recursive vs iterative call stacks"
+        ],
+        "tags": ["Big-O", "Theory", "Cheat Sheet"]
+      }
+    ]
+  },
+  {
+    "id": "math",
+    "name": "Mathematics & Linear Algebra",
+    "code": "MATH-201",
+    "icon": "Calculator",
+    "color": "indigo",
+    "gradient": "from-indigo-500/20 to-violet-500/20",
+    "borderGlow": "group-hover:border-indigo-500/50",
+    "accentColor": "#6366f1",
+    "description": "Vector spaces, linear transformations, eigenvalues, singular value decomposition (SVD), and multivariable calculus foundations.",
+    "instructor": "Prof. Carl Gauss & Dr. Emmy Noether",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "math-f1",
+        "name": "Chapter 03: Eigenvectors, Eigenvalues & Diagonalization.pdf",
+        "type": "PDF",
+        "size": "7.2 MB",
+        "uploadedAt": "2026-08-22",
+        "week": "Week 3",
+        "author": "Prof. Carl Gauss",
+        "pages": 56,
+        "summary": "Characteristic equations, algebraic vs geometric multiplicity, symmetric matrix spectral theorem, and geometric stretching representations.",
+        "tags": ["Linear Algebra", "Eigenvalues", "Matrices"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/math-ch3.pdf"
+      },
+      {
+        "id": "math-f2",
+        "name": "Lecture 08: Singular Value Decomposition (SVD) in Depth.pptx",
+        "type": "PPT",
+        "size": "16.8 MB",
+        "uploadedAt": "2026-08-27",
+        "week": "Week 8",
+        "author": "Dr. Emmy Noether",
+        "slides": 44,
+        "summary": "Geometric interpretation of U, Sigma, and V-transpose. Image compression demos, low-rank approximation, and pseudo-inverse computations.",
+        "tags": ["SVD", "Compression", "Data Science"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/svd.pptx"
+      },
+      {
+        "id": "math-f3",
+        "name": "Cheat Sheet: Multivariable Gradient, Divergence & Curl.pdf",
+        "type": "PDF",
+        "size": "2.1 MB",
+        "uploadedAt": "2026-08-12",
+        "week": "Week 1",
+        "author": "Math Department",
+        "pages": 6,
+        "summary": "Compact formula reference for Green's Theorem, Stokes' Theorem, the Divergence Theorem, and Hessian matrix curvature tests.",
+        "tags": ["Calculus", "Vectors", "Formulas"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/math-cheatsheet.pdf"
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "math-t1",
+        "title": "Visualizing Linear Transformations with 3D Geometric Projections",
+        "type": "Video",
+        "duration": "28 mins",
+        "instructor": "Dr. Emmy Noether",
+        "uploadedAt": "2026-08-25",
+        "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/fNk_zzaMoSs",
+        "externalUrl": "https://youtube.com",
+        "description": "Stunning animated walk-through of 3x3 matrices as space distorting functions, determinants as volume scaling factors, and null space projections.",
+        "tags": ["Geometry", "Linear Algebra", "Visual"]
+      },
+      {
+        "id": "math-t2",
+        "title": "Step-by-Step: Deriving SVD for Machine Learning Applications",
+        "type": "Guide",
+        "duration": "20 min read",
+        "instructor": "Prof. Carl Gauss",
+        "uploadedAt": "2026-08-29",
+        "thumbnail": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "",
+        "externalUrl": "https://en.wikipedia.org/wiki/Singular_value_decomposition",
+        "description": "A self-contained tutorial connecting linear algebra theory to PCA (Principal Component Analysis) and recommendation systems.",
+        "steps": [
+          "Computing A^T * A covariance matrix",
+          "Extracting singular values as square roots of eigenvalues",
+          "Truncating low-magnitude components for 95% energy retention"
+        ],
+        "tags": ["ML Math", "SVD", "PCA"]
+      }
+    ]
+  },
+  {
+    "id": "physics",
+    "name": "Physics for Engineers",
+    "code": "PHYS-102",
+    "icon": "Atom",
+    "color": "amber",
+    "gradient": "from-amber-500/20 to-orange-500/20",
+    "borderGlow": "group-hover:border-amber-500/50",
+    "accentColor": "#f59e0b",
+    "description": "Electromagnetism, Maxwell's equations, quantum mechanics foundations, optics, and thermodynamics.",
+    "instructor": "Prof. Richard Feynman & Dr. Marie Curie",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "phys-f1",
+        "name": "Module 02: Maxwell's Equations & Wave Propagation.pdf",
+        "type": "PDF",
+        "size": "8.7 MB",
+        "uploadedAt": "2026-08-20",
+        "week": "Week 2",
+        "author": "Prof. Richard Feynman",
+        "pages": 48,
+        "summary": "Gauss's law for electricity and magnetism, Faraday's law of induction, Ampere-Maxwell law, and electromagnetic wave derivation in vacuum.",
+        "tags": ["Electromagnetism", "Waves", "Core"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/phys-maxwell.pdf"
+      },
+      {
+        "id": "phys-f2",
+        "name": "Lecture 05: Quantum Harmonic Oscillators & Wavefunctions.pptx",
+        "type": "PPT",
+        "size": "12.3 MB",
+        "uploadedAt": "2026-08-26",
+        "week": "Week 5",
+        "author": "Dr. Marie Curie",
+        "slides": 32,
+        "summary": "Schrodinger's equation in 1D potential wells, ladder operator creation and annihilation, and zero-point energy fundamentals.",
+        "tags": ["Quantum", "Oscillators", "Schrodinger"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/phys-quantum.pptx"
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "phys-t1",
+        "title": "Intuitive Maxwell's Equations: Electromagnetic Fields Visualized",
+        "type": "Video",
+        "duration": "31 mins",
+        "instructor": "Prof. Richard Feynman",
+        "uploadedAt": "2026-08-22",
+        "thumbnail": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/FKxpGW38x64",
+        "externalUrl": "https://youtube.com",
+        "description": "Break down all four equations without intimidation: flux, circulation, dynamic induction, and light speed as universal constant c.",
+        "tags": ["Electromagnetism", "Feynman", "Visual"]
+      }
+    ]
+  },
+  {
+    "id": "os",
+    "name": "Operating Systems & Architecture",
+    "code": "CS-304",
+    "icon": "Cpu",
+    "color": "rose",
+    "gradient": "from-rose-500/20 to-pink-500/20",
+    "borderGlow": "group-hover:border-rose-500/50",
+    "accentColor": "#f43f5e",
+    "description": "Kernel architecture, process scheduling, concurrency primitives, virtual memory paging, and file system crash consistency.",
+    "instructor": "Prof. Linus Torvalds & Dr. Ken Thompson",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "os-f1",
+        "name": "Lecture 03: Virtual Memory, Page Tables & TLB Architecture.pdf",
+        "type": "PDF",
+        "size": "6.1 MB",
+        "uploadedAt": "2026-08-25",
+        "week": "Week 3",
+        "author": "Prof. Linus Torvalds",
+        "pages": 38,
+        "summary": "Multi-level page tables, inverted page tables, translation lookaside buffers (TLB), page fault handlers, and LRU replacement algorithms.",
+        "tags": ["Memory", "Paging", "Hardware"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/os-vm.pdf"
+      },
+      {
+        "id": "os-f2",
+        "name": "Lecture 06: Concurrency, Mutexes, Semaphores & Deadlocks.pptx",
+        "type": "PPT",
+        "size": "11.5 MB",
+        "uploadedAt": "2026-08-31",
+        "week": "Week 6",
+        "author": "Dr. Ken Thompson",
+        "slides": 40,
+        "summary": "Race conditions, test-and-set atomic operations, dining philosophers dilemma, Coffman deadlock conditions, and banker's algorithm.",
+        "tags": ["Concurrency", "Threads", "Deadlocks"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/os-concurrency.pptx"
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "os-t1",
+        "title": "Writing a Minimal x86 Multitasking Kernel from Scratch",
+        "type": "Video",
+        "duration": "48 mins",
+        "instructor": "Prof. Linus Torvalds",
+        "uploadedAt": "2026-08-27",
+        "thumbnail": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/1rnA6wpF0o4",
+        "externalUrl": "https://youtube.com",
+        "description": "Setting up protected mode, Global Descriptor Table (GDT), programmable interrupt controller (PIC), and context switching register states.",
+        "tags": ["Kernel", "C", "Low-Level"]
+      }
+    ]
+  },
+  {
+    "id": "ml",
+    "name": "Machine Learning & Neural Nets",
+    "code": "CS-405",
+    "icon": "BrainCircuit",
+    "color": "violet",
+    "gradient": "from-violet-500/20 to-purple-500/20",
+    "borderGlow": "group-hover:border-violet-500/50",
+    "accentColor": "#8b5cf6",
+    "description": "Supervised learning, deep neural architectures, backpropagation calculus, transformers, and diffusion models.",
+    "instructor": "Dr. Geoffrey Hinton & Dr. Fei-Fei Li",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "ml-f1",
+        "name": "Deep Dive 01: Attention Mechanisms & Transformer Decoders.pdf",
+        "type": "PDF",
+        "size": "9.4 MB",
+        "uploadedAt": "2026-08-29",
+        "week": "Week 5",
+        "author": "Dr. Fei-Fei Li",
+        "pages": 52,
+        "summary": "Scaled dot-product attention, multi-head projections, positional encodings, flash attention memory optimizations, and autoregressive generation.",
+        "tags": ["Transformers", "Attention", "LLMs"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/ml-transformers.pdf"
+      },
+      {
+        "id": "ml-f2",
+        "name": "Lecture 02: Convolutional Neural Networks & ResNets.pptx",
+        "type": "PPT",
+        "size": "18.1 MB",
+        "uploadedAt": "2026-08-21",
+        "week": "Week 2",
+        "author": "Dr. Geoffrey Hinton",
+        "slides": 45,
+        "summary": "Kernel convolutions, receptive fields, batch normalization, residual skip connections, and modern vision backbones.",
+        "tags": ["Vision", "CNN", "Deep Learning"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/ml-cnn.pptx"
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "ml-t1",
+        "title": "Building a Mini GPT Language Model from Raw Math",
+        "type": "Video",
+        "duration": "55 mins",
+        "instructor": "Andrej Karpathy Guest Lecture",
+        "uploadedAt": "2026-08-30",
+        "thumbnail": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/kCc8FmEb1nY",
+        "externalUrl": "https://youtube.com",
+        "description": "Code every single matrix multiplication, feedforward layer, and softmax attention block without high-level frameworks.",
+        "tags": ["GPT", "PyTorch", "Transformers"]
+      }
+    ]
+  },
+  {
+    "id": "web",
+    "name": "Full-Stack Web Development",
+    "code": "CS-250",
+    "icon": "Globe",
+    "color": "cyan",
+    "gradient": "from-cyan-500/20 to-blue-500/20",
+    "borderGlow": "group-hover:border-cyan-500/50",
+    "accentColor": "#06b6d4",
+    "description": "Modern frontend architectures, reactive state engines, REST & GraphQL APIs, caching layers, and cloud serverless deployments.",
+    "instructor": "Prof. Tim Berners-Lee & Engineering Staff",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "web-f1",
+        "name": "Architectural Guide: Modern React 19 Concurrent Rendering.pdf",
+        "type": "PDF",
+        "size": "4.9 MB",
+        "uploadedAt": "2026-08-23",
+        "week": "Week 3",
+        "author": "Engineering Staff",
+        "pages": 34,
+        "summary": "Server components, Actions, useOptimistic, transition boundaries, hydration optimizations, and asset loading pipelines.",
+        "tags": ["React", "Architecture", "Frontend"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/react19-guide.pdf"
+      },
+      {
+        "id": "web-f2",
+        "name": "Lecture 05: Distributed Caching & Web Performance.pptx",
+        "type": "PPT",
+        "size": "13.6 MB",
+        "uploadedAt": "2026-08-28",
+        "week": "Week 5",
+        "author": "Prof. Tim Berners-Lee",
+        "slides": 38,
+        "summary": "HTTP 3 QUIC, CDN edge caching, stale-while-revalidate protocols, Core Web Vitals (LCP, INP, CLS), and database indexing.",
+        "tags": ["Performance", "HTTP", "Caching"],
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/web-performance.pptx"
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "web-t1",
+        "title": "Building Production Ready APIs with WebSockets & Real-time Streams",
+        "type": "Video",
+        "duration": "38 mins",
+        "instructor": "Engineering Staff",
+        "uploadedAt": "2026-08-26",
+        "thumbnail": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "https://www.youtube.com/embed/1BfCnjr_Vjg",
+        "externalUrl": "https://youtube.com",
+        "description": "Full walk-through building a high-throughput collaborative system with server-sent events, WebSockets, and Redis Pub/Sub.",
+        "tags": ["WebSockets", "Node.js", "Full-Stack"]
+      },
+      {
+        "id": "web-t2",
+        "title": "Mastering Tailwind CSS & Modern UI Micro-Interactions",
+        "type": "Guide",
+        "duration": "12 min read",
+        "instructor": "UI/UX Guild",
+        "uploadedAt": "2026-08-29",
+        "thumbnail": "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=60",
+        "videoUrl": "",
+        "externalUrl": "https://tailwindcss.com",
+        "description": "Practical patterns for crafting glassmorphism cards, glow borders, animated dark-mode gradients, and accessible key navigation.",
+        "steps": [
+          "Configuring modern neutral color scales (zinc/slate)",
+          "Building reusable card wrappers with hover transitions",
+          "Handling responsive modal viewports and safe areas"
+        ],
+        "tags": ["Tailwind", "CSS", "UI/UX"]
+      }
+    ]
+  },
+  {
+    "id": "math-signals",
+    "name": "Mathematics for Signals",
+    "code": "MATH-210",
+    "icon": "Activity",
+    "color": "indigo",
+    "gradient": "from-indigo-500/20 to-cyan-500/20",
+    "borderGlow": "group-hover:border-indigo-500/50",
+    "accentColor": "#6366f1",
+    "description": "Continuous and discrete-time signals, Fourier transforms, Laplace transforms, Z-transforms, and spectral density.",
+    "instructor": "Prof. Claude Shannon & Dr. Joseph Fourier",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "ms-f1",
+        "title": "Fourier Transforms Notes",
+        "name": "Fourier Transforms Notes.pdf",
+        "type": "PDF",
+        "size": "3.2 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/fourier-notes.pdf",
+        "uploadedAt": "2026-08-25",
+        "week": "Week 3",
+        "author": "Dr. Joseph Fourier",
+        "pages": 36,
+        "summary": "Fourier transform derivation, duality properties, convolution theorem, and frequency domain representation of analog signals.",
+        "tags": ["Fourier", "Transforms", "Signals", "Math"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "ms-t1",
+        "title": "Tutorial Sheet 1: Signal Transformations",
+        "name": "Tutorial Sheet 1: Signal Transformations.pdf",
+        "type": "PDF",
+        "size": "1.2 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/signals-tut1.pdf",
+        "duration": "12 pages",
+        "uploadedAt": "2026-08-28",
+        "instructor": "Signal Processing Guild",
+        "thumbnail": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&auto=format&fit=crop&q=60",
+        "description": "Problem set on time reversal, scaling, shifting, odd/even signal decomposition, and convolution calculation.",
+        "steps": [
+          "Decompose input into symmetric even and odd components",
+          "Apply graphical convolution technique step-by-step",
+          "Compute energy and power spectral density integrals"
+        ],
+        "tags": ["Signals", "Tutorial", "ProblemSet"]
+      }
+    ]
+  },
+  {
+    "id": "digital-electronics",
+    "name": "Digital Electronics",
+    "code": "ECE-202",
+    "icon": "Cpu",
+    "color": "emerald",
+    "gradient": "from-emerald-500/20 to-teal-500/20",
+    "borderGlow": "group-hover:border-emerald-500/50",
+    "accentColor": "#10b981",
+    "description": "Logic gates, Boolean algebra, Karnaugh maps, combinational circuit synthesis, flip-flops, and sequential state machines.",
+    "instructor": "Prof. John von Neumann & Dr. George Boole",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "de-f1",
+        "title": "Logic Gates & Boolean Algebra",
+        "name": "Logic Gates & Boolean Algebra.pptx",
+        "type": "PPT",
+        "size": "4.5 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/logic-gates.pptx",
+        "uploadedAt": "2026-08-26",
+        "week": "Week 2",
+        "author": "Dr. George Boole",
+        "slides": 32,
+        "summary": "De Morgan's laws, universal NAND/NOR gates, SOP/POS minimization, and canonical logic representations.",
+        "tags": ["Logic", "Boolean", "Gates", "Digital"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "de-t1",
+        "title": "Tutorial Sheet 1: Combinational Logic Practice",
+        "name": "Tutorial Sheet 1: Combinational Logic Practice.pdf",
+        "type": "PDF",
+        "size": "950 KB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/logic-tut1.pdf",
+        "duration": "8 pages",
+        "uploadedAt": "2026-08-29",
+        "instructor": "Digital Systems Lab",
+        "thumbnail": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=60",
+        "description": "Comprehensive practice sheet on 4-variable K-map grouping, hazard-free logic circuits, and full adder designs.",
+        "steps": [
+          "Derive truth table for 4-input comparator",
+          "Group minterms using gray code adjacent cells in K-map",
+          "Implement minimal logic using only 2-input NAND gates"
+        ],
+        "tags": ["K-Map", "Combinational", "Practice"]
+      }
+    ]
+  },
+  {
+    "id": "measurement-science",
+    "name": "Measurement Science and Techniques",
+    "code": "INST-204",
+    "icon": "Gauge",
+    "color": "amber",
+    "gradient": "from-amber-500/20 to-yellow-500/20",
+    "borderGlow": "group-hover:border-amber-500/50",
+    "accentColor": "#f59e0b",
+    "description": "Instrumentation principles, systematic vs random error analysis, Wheatstone & Kelvin bridges, and sensor transducers.",
+    "instructor": "Prof. William Thomson (Lord Kelvin)",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "ms-sci-f1",
+        "title": "Errors in Measurement PPT",
+        "name": "Errors in Measurement PPT.pptx",
+        "type": "PPT",
+        "size": "2.8 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/errors-measurement.pptx",
+        "uploadedAt": "2026-08-23",
+        "week": "Week 1",
+        "author": "Instrumentation Dept",
+        "slides": 26,
+        "summary": "Limiting errors, statistical distribution of uncertainties, Gaussian propagation of errors, and instrument calibration standards.",
+        "tags": ["Errors", "Measurement", "Precision", "Calibration"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "ms-sci-t1",
+        "title": "Tutorial Sheet 1: Bridge Circuits & Error Analysis",
+        "name": "Tutorial Sheet 1: Bridge Circuits & Error Analysis.pdf",
+        "type": "PDF",
+        "size": "1.1 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/bridge-tut1.pdf",
+        "duration": "10 pages",
+        "uploadedAt": "2026-08-27",
+        "instructor": "Measurement Lab Faculty",
+        "thumbnail": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=60",
+        "description": "Worked numericals on Wheatstone bridge balance conditions, Maxwell's inductance bridge, and standard deviation calculations.",
+        "steps": [
+          "Formulate bridge null balance condition equation",
+          "Calculate fractional uncertainty using partial derivatives",
+          "Determine lead resistance compensation in Kelvin Double Bridge"
+        ],
+        "tags": ["Bridges", "ErrorAnalysis", "TutorialSheet"]
+      }
+    ]
+  },
+  {
+    "id": "edp-buggy",
+    "name": "EDP (Buggy)",
+    "code": "ENGR-290",
+    "icon": "Bug",
+    "color": "rose",
+    "gradient": "from-rose-500/20 to-red-500/20",
+    "borderGlow": "group-hover:border-rose-500/50",
+    "accentColor": "#f43f5e",
+    "description": "Engineering Design Project (Buggy): chassis fabrication, motor drive control, autonomous steering, and firmware debugging.",
+    "instructor": "Prof. Nikola Tesla & Robotics Engineering Team",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "edp-f1",
+        "title": "Project Blueprint & Requirements",
+        "name": "Project Blueprint & Requirements.pdf",
+        "type": "PDF",
+        "size": "1.5 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/buggy-blueprint.pdf",
+        "uploadedAt": "2026-08-20",
+        "week": "Module 1",
+        "author": "Robotics Engineering Team",
+        "pages": 22,
+        "summary": "Complete mechanical specifications, CAD assembly guidelines, motor torque thresholds, and track obstacle constraints.",
+        "tags": ["EDP", "Buggy", "Blueprint", "Robotics"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "edp-t1",
+        "title": "Tutorial Sheet 1: Debugging & Troubleshooting Tasks",
+        "name": "Tutorial Sheet 1: Debugging & Troubleshooting Tasks.pdf",
+        "type": "PDF",
+        "size": "800 KB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/buggy-debug.pdf",
+        "duration": "6 pages",
+        "uploadedAt": "2026-08-24",
+        "instructor": "Hardware Debug Lab",
+        "thumbnail": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=60",
+        "description": "Step-by-step diagnostic guide for H-Bridge motor driver faults, sensor noise filtering, and telemetry debugging.",
+        "steps": [
+          "Check battery voltage under active load with multimeter",
+          "Inspect PWM output wave on oscilloscope for jitter",
+          "Tune PID loop proportional gain Kp for track centering"
+        ],
+        "tags": ["Debugging", "Troubleshooting", "Firmware"]
+      }
+    ]
+  },
+  {
+    "id": "analog-devices",
+    "name": "Analog Devices and Circuits",
+    "code": "ECE-203",
+    "icon": "Zap",
+    "color": "orange",
+    "gradient": "from-orange-500/20 to-amber-500/20",
+    "borderGlow": "group-hover:border-orange-500/50",
+    "accentColor": "#f97316",
+    "description": "Operational amplifiers, feedback topologies, active filters, BJT/MOSFET small-signal modeling, and power amplifiers.",
+    "instructor": "Dr. Robert Widlar & Prof. Paul Gray",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "ad-f1",
+        "title": "Op-Amp Applications Notes",
+        "name": "Op-Amp Applications Notes.pdf",
+        "type": "PDF",
+        "size": "5.0 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/opamp-notes.pdf",
+        "uploadedAt": "2026-08-22",
+        "week": "Week 3",
+        "author": "Dr. Robert Widlar",
+        "pages": 44,
+        "summary": "Inverting and non-inverting amplifiers, integrator/differentiator circuits, instrumentation amplifiers, and slew rate limits.",
+        "tags": ["Op-Amp", "Analog", "Circuits", "Feedback"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "ad-t1",
+        "title": "Tutorial Sheet 1: Diode & Transistor Numericals",
+        "name": "Tutorial Sheet 1: Diode & Transistor Numericals.pdf",
+        "type": "PDF",
+        "size": "1.4 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/transistor-tut1.pdf",
+        "duration": "14 pages",
+        "uploadedAt": "2026-08-27",
+        "instructor": "Analog Faculty",
+        "thumbnail": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop&q=60",
+        "description": "DC load line analysis, Q-point stabilization, small-signal hybrid-pi model calculations, and voltage gain derivation.",
+        "steps": [
+          "Establish DC bias conditions and find quiescent collector current",
+          "Construct AC small-signal equivalent hybrid-pi circuit",
+          "Derive input impedance and midband voltage gain Av"
+        ],
+        "tags": ["Transistors", "Diode", "Numericals"]
+      }
+    ]
+  },
+  {
+    "id": "aptitude-skills",
+    "name": "Aptitude Skills",
+    "code": "APT-101",
+    "icon": "Brain",
+    "color": "violet",
+    "gradient": "from-violet-500/20 to-purple-500/20",
+    "borderGlow": "group-hover:border-violet-500/50",
+    "accentColor": "#8b5cf6",
+    "description": "Quantitative aptitude, logical reasoning, data interpretation, probability, and algorithmic problem-solving shortcuts.",
+    "instructor": "Campus Placement Training Division",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "apt-f1",
+        "title": "Quantitative Aptitude Formulas",
+        "name": "Quantitative Aptitude Formulas.pdf",
+        "type": "PDF",
+        "size": "1.9 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/aptitude-formulas.pdf",
+        "uploadedAt": "2026-08-19",
+        "week": "Week 1",
+        "author": "Placement Division",
+        "pages": 16,
+        "summary": "Master formula handbook for speed-distance-time, permutations & combinations, modular arithmetic, and work-time formulas.",
+        "tags": ["Aptitude", "Formulas", "Quant", "Placement"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "apt-t1",
+        "title": "Tutorial Sheet 1: Profit, Loss & Percentage Practice",
+        "name": "Tutorial Sheet 1: Profit, Loss & Percentage Practice.pdf",
+        "type": "PDF",
+        "size": "1.0 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/profit-loss-tut1.pdf",
+        "duration": "12 pages",
+        "uploadedAt": "2026-08-25",
+        "instructor": "Aptitude Coaching Guild",
+        "thumbnail": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=60",
+        "description": "50 high-frequency quantitative problems on marked price, successive discounts, faulty balances, and profit percentage margins.",
+        "steps": [
+          "Identify base cost price versus selling price relationship",
+          "Apply shortcut formula for successive percentage variations",
+          "Solve ratio equivalence problems under strict time constraints"
+        ],
+        "tags": ["ProfitLoss", "Percentage", "PracticeSheet"]
+      }
+    ]
+  },
+  {
+    "id": "ai-for-engineers",
+    "name": "AI for Engineers",
+    "code": "CS-215",
+    "icon": "Bot",
+    "color": "cyan",
+    "gradient": "from-cyan-500/20 to-blue-500/20",
+    "borderGlow": "group-hover:border-cyan-500/50",
+    "accentColor": "#06b6d4",
+    "description": "Applied AI tools, foundational machine learning algorithms, NumPy/Pandas pipelines, and neural network inference for engineering systems.",
+    "instructor": "Dr. Andrew Ng & Applied AI Staff",
+    "semester": "Fall 2026",
+    "files": [
+      {
+        "id": "ai-f1",
+        "title": "Machine Learning Basics PPT",
+        "name": "Machine Learning Basics PPT.pptx",
+        "type": "PPT",
+        "size": "6.1 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/ml-basics.pptx",
+        "uploadedAt": "2026-08-28",
+        "week": "Week 2",
+        "author": "Dr. Andrew Ng",
+        "slides": 38,
+        "summary": "Supervised vs unsupervised learning, gradient descent mechanics, loss functions (MSE, cross-entropy), and overfitting regularization.",
+        "tags": ["AI", "MachineLearning", "Basics", "PPT"]
+      }
+    ],
+    "tutorials": [
+      {
+        "id": "ai-t1",
+        "title": "Tutorial Sheet 1: Python & NumPy Practice Problems",
+        "name": "Tutorial Sheet 1: Python & NumPy Practice Problems.pdf",
+        "type": "PDF",
+        "size": "1.3 MB",
+        "url": "#",
+        "downloadUrl": "#",
+        "previewUrl": "https://example.com/numpy-tut1.pdf",
+        "duration": "10 pages",
+        "uploadedAt": "2026-08-30",
+        "instructor": "Applied AI Staff",
+        "thumbnail": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+        "description": "Vectorized matrix operations, broadcasting rules, linear algebra with np.linalg, and gradient descent implementation in raw Python.",
+        "steps": [
+          "Vectorize for-loops into high-speed NumPy tensor expressions",
+          "Apply broadcasting semantics for multidimensional datasets",
+          "Implement mean squared error cost function and compute gradients"
+        ],
+        "tags": ["Python", "NumPy", "PracticeProblems"]
+      }
+    ]
+  }
+]
