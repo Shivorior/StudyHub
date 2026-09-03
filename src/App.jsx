@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle } from 'lucide-react';
+import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle, Link as LinkIcon } from 'lucide-react';
 import subjectsData from './data/subjects.json';
+
+// Helper: Converts standard Google Drive share links into preview and direct download endpoints
+function parseDriveLink(inputUrl) {
+  if (!inputUrl || inputUrl === '#') return { downloadUrl: '#', previewUrl: '#' };
+
+  const match = inputUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || inputUrl.match(/id=([a-zA-Z0-9_-]+)/);
+
+  if (match && match[1]) {
+    const fileId = match[1];
+    return {
+      downloadUrl: `https://drive.usercontent.google.com/download?id=${fileId}&export=download`,
+      previewUrl: `https://drive.google.com/file/d/${fileId}/preview`
+    };
+  }
+
+  return { downloadUrl: inputUrl, previewUrl: inputUrl };
+}
 
 export default function App() {
   const [subjects, setSubjects] = useState(subjectsData);
@@ -199,64 +216,84 @@ export default function App() {
                   <div className="space-y-3">
                     {activeTab === 'files' ? (
                       filteredFiles.length > 0 ? (
-                        filteredFiles.map((file, idx) => (
-                          <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <FileText className="w-4 h-4 text-[#0071e3]" />
-                                <h4 className="text-sm font-semibold text-[#1d1d1f]">{file.title || file.name}</h4>
+                        filteredFiles.map((file, idx) => {
+                          const fileEndpoints = parseDriveLink(file.url || file.downloadUrl || '#');
+                          return (
+                            <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <FileText className="w-4 h-4 text-[#0071e3]" />
+                                  <h4 className="text-sm font-semibold text-[#1d1d1f]">{file.title || file.name}</h4>
+                                </div>
+                                {(file.description || file.summary) && <p className="text-xs text-[#86868b] ml-6">{file.description || file.summary}</p>}
+                                <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
+                                  {file.size && <span>{file.size}</span>}
+                                  {(file.instructor || file.author) && <span>• {file.instructor || file.author}</span>}
+                                </div>
                               </div>
-                              {(file.description || file.summary) && <p className="text-xs text-[#86868b] ml-6">{file.description || file.summary}</p>}
-                              <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
-                                {file.size && <span>{file.size}</span>}
-                                {(file.instructor || file.author) && <span>• {file.instructor || file.author}</span>}
+                              <div className="flex items-center space-x-2 shrink-0">
+                                <button
+                                  onClick={() => setPreviewItem(file)}
+                                  className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
+                                  <span>Preview</span>
+                                </button>
+                                <a 
+                                  href={fileEndpoints.downloadUrl} 
+                                  download 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="p-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] rounded-xl shadow-sm transition" 
+                                  title="Download"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </a>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2 shrink-0">
-                              <button
-                                onClick={() => setPreviewItem(file)}
-                                className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
-                                <span>Preview</span>
-                              </button>
-                              <a href={file.url || file.downloadUrl || '#'} download className="p-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] rounded-xl shadow-sm transition" title="Download">
-                                <Download className="w-4 h-4" />
-                              </a>
-                            </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <p className="text-xs text-[#86868b] text-center py-10">No matching class files found.</p>
                       )
                     ) : (
                       filteredTutorials.length > 0 ? (
-                        filteredTutorials.map((tut, idx) => (
-                          <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <FileText className="w-4 h-4 text-[#34c759]" />
-                                <h4 className="text-sm font-semibold text-[#1d1d1f]">{tut.title || tut.name}</h4>
+                        filteredTutorials.map((tut, idx) => {
+                          const tutEndpoints = parseDriveLink(tut.url || tut.downloadUrl || '#');
+                          return (
+                            <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <FileText className="w-4 h-4 text-[#34c759]" />
+                                  <h4 className="text-sm font-semibold text-[#1d1d1f]">{tut.title || tut.name}</h4>
+                                </div>
+                                {(tut.description || tut.summary) && <p className="text-xs text-[#86868b] ml-6">{tut.description || tut.summary}</p>}
+                                <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
+                                  {tut.size && <span>{tut.size}</span>}
+                                </div>
                               </div>
-                              {(tut.description || tut.summary) && <p className="text-xs text-[#86868b] ml-6">{tut.description || tut.summary}</p>}
-                              <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
-                                {tut.size && <span>{tut.size}</span>}
+                              <div className="flex items-center space-x-2 shrink-0">
+                                <button
+                                  onClick={() => setPreviewItem(tut)}
+                                  className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#34c759]" />
+                                  <span>Preview</span>
+                                </button>
+                                <a 
+                                  href={tutEndpoints.downloadUrl} 
+                                  download 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="p-2 bg-white hover:bg-[#e8e8ed] text-[#34c759] rounded-xl shadow-sm transition" 
+                                  title="Download Sheet"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </a>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2 shrink-0">
-                              <button
-                                onClick={() => setPreviewItem(tut)}
-                                className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-[#34c759]" />
-                                <span>Preview</span>
-                              </button>
-                              <a href={tut.url || tut.downloadUrl || '#'} download className="p-2 bg-white hover:bg-[#e8e8ed] text-[#34c759] rounded-xl shadow-sm transition" title="Download Sheet">
-                                <Download className="w-4 h-4" />
-                              </a>
-                            </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <p className="text-xs text-[#86868b] text-center py-10">No matching tutorial practice sheets found.</p>
                       )
@@ -272,43 +309,60 @@ export default function App() {
       </main>
 
       {/* In-Browser Preview Modal */}
-      {previewItem && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
-          <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-            <div className="px-6 py-4 border-b border-[#d2d2d7] flex items-center justify-between bg-[#f5f5f7]/80">
-              <div>
-                <h3 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-md">{previewItem.title || previewItem.name}</h3>
-                <p className="text-[11px] text-[#86868b]">In-browser document preview mode</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <a href={previewItem.url || previewItem.downloadUrl || '#'} download className="px-3.5 py-1.5 bg-[#0071e3] text-white text-xs font-medium rounded-full shadow-sm hover:bg-[#0077ed] transition flex items-center space-x-1">
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download</span>
-                </a>
-                <button onClick={() => setPreviewItem(null)} className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 bg-[#e8e8ed]/40 flex items-center justify-center p-4">
-              {((previewItem.url && previewItem.url !== '#') || (previewItem.previewUrl && previewItem.previewUrl !== '#')) ? (
-                <iframe src={previewItem.url && previewItem.url !== '#' ? previewItem.url : previewItem.previewUrl} title={previewItem.title || previewItem.name} className="w-full h-full rounded-2xl border border-[#d2d2d7] bg-white" />
-              ) : (
-                <div className="text-center p-8 max-w-sm">
-                  <FileText className="w-12 h-12 text-[#86868b] mx-auto mb-3" />
-                  <h4 className="font-semibold text-base mb-1">Previewing: {previewItem.title || previewItem.name}</h4>
-                  <p className="text-xs text-[#86868b] mb-4">{previewItem.description || previewItem.summary || 'Class academic resource material.'}</p>
-                  <div className="inline-block px-3 py-1 rounded-full bg-[#0071e3]/10 text-[#0071e3] font-mono text-xs mb-5">
-                    {previewItem.size || '3.2 MB'} • {previewItem.type || 'PDF'}
-                  </div>
-                  <br />
-                  <button onClick={() => setPreviewItem(null)} className="px-4 py-2 bg-[#1d1d1f] text-white text-xs font-medium rounded-full">Close</button>
+      {previewItem && (() => {
+        const rawUrl = previewItem.url && previewItem.url !== '#' ? previewItem.url : previewItem.previewUrl;
+        const endpoints = parseDriveLink(rawUrl);
+        const hasLiveLink = endpoints.previewUrl && endpoints.previewUrl !== '#';
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
+            <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+              <div className="px-6 py-4 border-b border-[#d2d2d7] flex items-center justify-between bg-[#f5f5f7]/80">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-md">{previewItem.title || previewItem.name}</h3>
+                  <p className="text-[11px] text-[#86868b]">In-browser document preview mode</p>
                 </div>
-              )}
+                <div className="flex items-center space-x-3">
+                  <a 
+                    href={endpoints.downloadUrl !== '#' ? endpoints.downloadUrl : (previewItem.url || '#')} 
+                    download 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 bg-[#0071e3] text-white text-xs font-medium rounded-full shadow-sm hover:bg-[#0077ed] transition flex items-center space-x-1"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download</span>
+                  </a>
+                  <button onClick={() => setPreviewItem(null)} className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 bg-[#e8e8ed]/40 flex items-center justify-center p-4">
+                {hasLiveLink ? (
+                  <iframe 
+                    src={endpoints.previewUrl} 
+                    title={previewItem.title || previewItem.name} 
+                    className="w-full h-full rounded-2xl border border-[#d2d2d7] bg-white" 
+                    allow="autoplay"
+                  />
+                ) : (
+                  <div className="text-center p-8 max-w-sm">
+                    <FileText className="w-12 h-12 text-[#86868b] mx-auto mb-3" />
+                    <h4 className="font-semibold text-base mb-1">Previewing: {previewItem.title || previewItem.name}</h4>
+                    <p className="text-xs text-[#86868b] mb-4">{previewItem.description || previewItem.summary || 'Class academic resource material.'}</p>
+                    <div className="inline-block px-3 py-1 rounded-full bg-[#0071e3]/10 text-[#0071e3] font-mono text-xs mb-5">
+                      {previewItem.size || '3.2 MB'} • {previewItem.type || 'PDF'}
+                    </div>
+                    <br />
+                    <button onClick={() => setPreviewItem(null)} className="px-4 py-2 bg-[#1d1d1f] text-white text-xs font-medium rounded-full">Close</button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Password Authentication Modal */}
       {isAdminOpen && !isAuthenticated && (
@@ -389,6 +443,8 @@ function AppleAdminSuite({ subjects, setSubjects }) {
     e.preventDefault();
     if (!title) return alert('Please enter a title');
 
+    const endpoints = parseDriveLink(fileUrl);
+
     const newItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title,
@@ -400,7 +456,8 @@ function AppleAdminSuite({ subjects, setSubjects }) {
       type: 'PDF',
       size: fileSize || '1.0 MB',
       url: fileUrl || '#',
-      downloadUrl: fileUrl || '#'
+      downloadUrl: endpoints.downloadUrl !== '#' ? endpoints.downloadUrl : (fileUrl || '#'),
+      previewUrl: endpoints.previewUrl !== '#' ? endpoints.previewUrl : (fileUrl || '#')
     };
 
     const updated = subjects.map((subj) => {
@@ -477,6 +534,8 @@ function AppleAdminSuite({ subjects, setSubjects }) {
   // Precise edit save using uniqueKey matching
   const handleSaveEdit = (e) => {
     e.preventDefault();
+    const endpoints = parseDriveLink(editingTarget.url);
+
     const updated = subjects.map(subj => {
       if (subj.id === editingTarget.subjectId) {
         return {
@@ -494,7 +553,8 @@ function AppleAdminSuite({ subjects, setSubjects }) {
                 author: editingTarget.instructor,
                 size: editingTarget.size,
                 url: editingTarget.url,
-                downloadUrl: editingTarget.url,
+                downloadUrl: endpoints.downloadUrl !== '#' ? endpoints.downloadUrl : (editingTarget.url || '#'),
+                previewUrl: endpoints.previewUrl !== '#' ? endpoints.previewUrl : (editingTarget.url || '#'),
                 type: editingTarget.type || 'PDF'
               };
             }
@@ -616,10 +676,13 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Direct File URL</label>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider flex items-center justify-between mb-2">
+                <span>Direct File URL / Google Drive</span>
+                <span className="text-[10px] text-[#0071e3] font-normal">Auto-formats Drive links</span>
+              </label>
               <input 
                 type="text" 
-                placeholder="Auto-generated or paste cloud link" 
+                placeholder="https://drive.google.com/file/d/... or direct link" 
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -782,7 +845,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Direct File URL</label>
+                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Direct File URL / Google Drive</label>
                 <input 
                   type="text" 
                   value={editingTarget.url || ''}
