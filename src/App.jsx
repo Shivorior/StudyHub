@@ -1,13 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle, Link as LinkIcon } from 'lucide-react';
-import subjectsData from './data/subjects.json';
+import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle } from 'lucide-react';
+import { db } from './firebase';
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  deleteDoc, 
+  updateDoc, 
+  doc 
+} from 'firebase/firestore';
 
-// Helper: Converts standard Google Drive share links into preview and direct download endpoints
-function parseDriveLink(inputUrl) {
-  if (!inputUrl || inputUrl === '#') return { downloadUrl: '#', previewUrl: '#' };
+// Static branch subjects list
+const EIC_SUBJECTS = [
+  { id: 'analog', name: 'Analog Devices and Circuits' },
+  { id: 'signals', name: 'Mathematics for Signals' },
+  { id: 'digital', name: 'Digital Electronics' },
+  { id: 'mst', name: 'Measurement Science and Techniques' },
+  { id: 'buggy', name: 'EDP (Buggy)' },
+  { id: 'dsa', name: 'Data Structures & Algorithms' },
+  { id: 'maths', name: 'Mathematics & Linear Algebra' },
+  { id: 'physics', name: 'Physics for Engineers' },
+  { id: 'os', name: 'Operating Systems & Architecture' },
+  { id: 'ml', name: 'Machine Learning & Neural Nets' },
+  { id: 'web', name: 'Full-Stack Web Development' },
+  { id: 'aptitude', name: 'Aptitude Skills' },
+  { id: 'ai', name: 'AI for Engineers' }
+];
 
+export function parseDriveLink(inputUrl) {
+  if (!inputUrl) return { downloadUrl: '#', previewUrl: '#' };
   const match = inputUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || inputUrl.match(/id=([a-zA-Z0-9_-]+)/);
-
   if (match && match[1]) {
     const fileId = match[1];
     return {
@@ -15,20 +37,20 @@ function parseDriveLink(inputUrl) {
       previewUrl: `https://drive.google.com/file/d/${fileId}/preview`
     };
   }
-
   return { downloadUrl: inputUrl, previewUrl: inputUrl };
 }
 
 export default function App() {
-  const [subjects, setSubjects] = useState(subjectsData);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [viewMode, setViewMode] = useState('viewer'); 
 
-  // Viewer State
+  // Viewer state
   const [selectedBranch, setSelectedBranch] = useState('EIC');
-  const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
+  const [selectedSubject, setSelectedSubject] = useState(EIC_SUBJECTS[0].id);
   const [activeTab, setActiveTab] = useState('files');
   const [searchQuery, setSearchQuery] = useState('');
   const [previewItem, setPreviewItem] = useState(null);
@@ -41,6 +63,27 @@ export default function App() {
     { id: 'CIVIL', name: 'Civil Engineering (CIVIL)' }
   ];
 
+  // Fetch all resources live from Firestore
+  const fetchResources = async () => {
+    try {
+      setLoading(true);
+      const querySnapshot = await getDocs(collection(db, 'resources'));
+      const items = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setResources(items);
+    } catch (err) {
+      console.error("Firestore read error: ", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchResources();
+  }, []);
+
   // Hash listener for #admin codeword
   useEffect(() => {
     const handleHashChange = () => {
@@ -48,19 +91,10 @@ export default function App() {
         setIsAdminOpen(true);
       }
     };
-    if (window.location.hash === '#admin') {
-      setIsAdminOpen(true);
-    }
+    if (window.location.hash === '#admin') setIsAdminOpen(true);
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
-
-  const handleCloseAdminModal = () => {
-    setIsAdminOpen(false);
-    if (!isAuthenticated) {
-      window.location.hash = '';
-    }
-  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -74,25 +108,20 @@ export default function App() {
     }
   };
 
-  const currentSubjectData = subjects.find(s => s.id === selectedSubject) || subjects[0] || { name: 'Subject', files: [], tutorials: [] };
+  const currentSubjectData = EIC_SUBJECTS.find(s => s.id === selectedSubject) || EIC_SUBJECTS[0];
 
-  const filteredFiles = (currentSubjectData?.files || []).filter(file => {
-    const title = (file.title || file.name || '').toLowerCase();
-    const desc = (file.description || file.summary || '').toLowerCase();
-    const q = searchQuery.toLowerCase();
-    return title.includes(q) || desc.includes(q);
-  });
+  // Filter items matching active subject & category
+  const activeSubjectResources = resources.filter(r => r.subjectId === selectedSubject);
+  const subjectFiles = activeSubjectResources.filter(r => r.category === 'files');
+  const subjectTutorials = activeSubjectResources.filter(r => r.category === 'tutorials');
 
-  const filteredTutorials = (currentSubjectData?.tutorials || []).filter(tut => {
-    const title = (tut.title || tut.name || '').toLowerCase();
-    const desc = (tut.description || tut.summary || '').toLowerCase();
-    const q = searchQuery.toLowerCase();
-    return title.includes(q) || desc.includes(q);
-  });
+  const filteredDisplayItems = (activeTab === 'files' ? subjectFiles : subjectTutorials).filter(item =>
+    (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans selection:bg-blue-500 selection:text-white">
-      {/* Apple-style Navigation Bar */}
       <header className="sticky top-0 z-40 bg-[#f5f5f7]/80 backdrop-blur-md border-b border-[#d2d2d7]/60 px-8 py-4 flex justify-between items-center transition-all">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white font-bold text-xs">S</div>
@@ -115,7 +144,6 @@ export default function App() {
         )}
       </header>
 
-      {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-6 py-10">
         {viewMode === 'viewer' ? (
           <div>
@@ -147,15 +175,15 @@ export default function App() {
                 </div>
                 <h3 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-2">Coming Soon</h3>
                 <p className="text-[#86868b] text-sm">
-                  Resources for this branch are currently being prepared. Check back shortly or switch to the EIC branch for active material.
+                  Resources for this branch are currently being prepared. Switch to the EIC branch for active material.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Subjects Navigation */}
+                {/* Subjects Menu */}
                 <div className="lg:col-span-1 space-y-2">
                   <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#86868b] px-3 mb-3">EIC Subjects</h3>
-                  {subjects.map(subject => (
+                  {EIC_SUBJECTS.map(subject => (
                     <button
                       key={subject.id}
                       onClick={() => {
@@ -189,7 +217,7 @@ export default function App() {
                           activeTab === 'files' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
                         }`}
                       >
-                        Class PPTs & Notes ({(currentSubjectData.files || []).length})
+                        Class PPTs & Notes ({subjectFiles.length})
                       </button>
                       <button
                         onClick={() => setActiveTab('tutorials')}
@@ -197,7 +225,7 @@ export default function App() {
                           activeTab === 'tutorials' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
                         }`}
                       >
-                        Tutorial Sheets ({(currentSubjectData.tutorials || []).length})
+                        Tutorial Sheets ({subjectTutorials.length})
                       </button>
                     </div>
                   </div>
@@ -206,169 +234,97 @@ export default function App() {
                     <Search className="w-4 h-4 text-[#86868b] absolute left-4 top-1/2 -translate-y-1/2" />
                     <input 
                       type="text"
-                      placeholder={`Search notes, PPTs, or tutorial sheets in ${currentSubjectData.name}...`}
+                      placeholder={`Search in ${currentSubjectData.name}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    {activeTab === 'files' ? (
-                      filteredFiles.length > 0 ? (
-                        filteredFiles.map((file, idx) => {
-                          const fileEndpoints = parseDriveLink(file.url || file.downloadUrl || '#');
-                          return (
-                            <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
-                              <div>
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <FileText className="w-4 h-4 text-[#0071e3]" />
-                                  <h4 className="text-sm font-semibold text-[#1d1d1f]">{file.title || file.name}</h4>
-                                </div>
-                                {(file.description || file.summary) && <p className="text-xs text-[#86868b] ml-6">{file.description || file.summary}</p>}
-                                <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
-                                  {file.size && <span>{file.size}</span>}
-                                  {(file.instructor || file.author) && <span>• {file.instructor || file.author}</span>}
-                                </div>
+                  {loading ? (
+                    <p className="text-xs text-[#86868b] text-center py-10">Loading synced files...</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredDisplayItems.length > 0 ? (
+                        filteredDisplayItems.map((item) => (
+                          <div key={item.id} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center space-x-2 mb-1">
+                                <FileText className={`w-4 h-4 ${item.category === 'files' ? 'text-[#0071e3]' : 'text-[#34c759]'}`} />
+                                <h4 className="text-sm font-semibold text-[#1d1d1f]">{item.title}</h4>
                               </div>
-                              <div className="flex items-center space-x-2 shrink-0">
-                                <button
-                                  onClick={() => setPreviewItem(file)}
-                                  className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
-                                  <span>Preview</span>
-                                </button>
-                                <a 
-                                  href={fileEndpoints.downloadUrl} 
-                                  download 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="p-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] rounded-xl shadow-sm transition" 
-                                  title="Download"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </a>
+                              {item.description && <p className="text-xs text-[#86868b] ml-6">{item.description}</p>}
+                              <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
+                                {item.size && <span>{item.size}</span>}
+                                {item.instructor && <span>• {item.instructor}</span>}
                               </div>
                             </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-xs text-[#86868b] text-center py-10">No matching class files found.</p>
-                      )
-                    ) : (
-                      filteredTutorials.length > 0 ? (
-                        filteredTutorials.map((tut, idx) => {
-                          const tutEndpoints = parseDriveLink(tut.url || tut.downloadUrl || '#');
-                          return (
-                            <div key={idx} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
-                              <div>
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <FileText className="w-4 h-4 text-[#34c759]" />
-                                  <h4 className="text-sm font-semibold text-[#1d1d1f]">{tut.title || tut.name}</h4>
-                                </div>
-                                {(tut.description || tut.summary) && <p className="text-xs text-[#86868b] ml-6">{tut.description || tut.summary}</p>}
-                                <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
-                                  {tut.size && <span>{tut.size}</span>}
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2 shrink-0">
-                                <button
-                                  onClick={() => setPreviewItem(tut)}
-                                  className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-[#34c759]" />
-                                  <span>Preview</span>
-                                </button>
-                                <a 
-                                  href={tutEndpoints.downloadUrl} 
-                                  download 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="p-2 bg-white hover:bg-[#e8e8ed] text-[#34c759] rounded-xl shadow-sm transition" 
-                                  title="Download Sheet"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </a>
-                              </div>
+                            <div className="flex items-center space-x-2 shrink-0">
+                              <button
+                                onClick={() => setPreviewItem(item)}
+                                className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
+                                <span>Preview</span>
+                              </button>
+                              <a href={item.downloadUrl || item.url} download className="p-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] rounded-xl shadow-sm transition" title="Download">
+                                <Download className="w-4 h-4" />
+                              </a>
                             </div>
-                          );
-                        })
+                          </div>
+                        ))
                       ) : (
-                        <p className="text-xs text-[#86868b] text-center py-10">No matching tutorial practice sheets found.</p>
-                      )
-                    )}
-                  </div>
+                        <p className="text-xs text-[#86868b] text-center py-10">No materials uploaded here yet.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <AppleAdminSuite subjects={subjects} setSubjects={setSubjects} />
+          <AppleAdminSuite 
+            resources={resources} 
+            onDataChange={fetchResources} 
+          />
         )}
       </main>
 
       {/* In-Browser Preview Modal */}
-      {previewItem && (() => {
-        const rawUrl = previewItem.url && previewItem.url !== '#' ? previewItem.url : previewItem.previewUrl;
-        const endpoints = parseDriveLink(rawUrl);
-        const hasLiveLink = endpoints.previewUrl && endpoints.previewUrl !== '#';
-
-        return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
-            <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-              <div className="px-6 py-4 border-b border-[#d2d2d7] flex items-center justify-between bg-[#f5f5f7]/80">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-md">{previewItem.title || previewItem.name}</h3>
-                  <p className="text-[11px] text-[#86868b]">In-browser document preview mode</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <a 
-                    href={endpoints.downloadUrl !== '#' ? endpoints.downloadUrl : (previewItem.url || '#')} 
-                    download 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 bg-[#0071e3] text-white text-xs font-medium rounded-full shadow-sm hover:bg-[#0077ed] transition flex items-center space-x-1"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
-                  </a>
-                  <button onClick={() => setPreviewItem(null)} className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+      {previewItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
+          <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+            <div className="px-6 py-4 border-b border-[#d2d2d7] flex items-center justify-between bg-[#f5f5f7]/80">
+              <div>
+                <h3 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-md">{previewItem.title}</h3>
+                <p className="text-[11px] text-[#86868b]">In-browser document preview mode</p>
               </div>
-              <div className="flex-1 bg-[#e8e8ed]/40 flex items-center justify-center p-4">
-                {hasLiveLink ? (
-                  <iframe 
-                    src={endpoints.previewUrl} 
-                    title={previewItem.title || previewItem.name} 
-                    className="w-full h-full rounded-2xl border border-[#d2d2d7] bg-white" 
-                    allow="autoplay"
-                  />
-                ) : (
-                  <div className="text-center p-8 max-w-sm">
-                    <FileText className="w-12 h-12 text-[#86868b] mx-auto mb-3" />
-                    <h4 className="font-semibold text-base mb-1">Previewing: {previewItem.title || previewItem.name}</h4>
-                    <p className="text-xs text-[#86868b] mb-4">{previewItem.description || previewItem.summary || 'Class academic resource material.'}</p>
-                    <div className="inline-block px-3 py-1 rounded-full bg-[#0071e3]/10 text-[#0071e3] font-mono text-xs mb-5">
-                      {previewItem.size || '3.2 MB'} • {previewItem.type || 'PDF'}
-                    </div>
-                    <br />
-                    <button onClick={() => setPreviewItem(null)} className="px-4 py-2 bg-[#1d1d1f] text-white text-xs font-medium rounded-full">Close</button>
-                  </div>
-                )}
+              <div className="flex items-center space-x-3">
+                <a href={previewItem.downloadUrl || previewItem.url} download className="px-3.5 py-1.5 bg-[#0071e3] text-white text-xs font-medium rounded-full shadow-sm hover:bg-[#0077ed] transition flex items-center space-x-1">
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+                <button onClick={() => setPreviewItem(null)} className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
+            <div className="flex-1 bg-[#e8e8ed]/40 flex items-center justify-center p-4">
+              <iframe 
+                src={previewItem.previewUrl || previewItem.url} 
+                title={previewItem.title} 
+                className="w-full h-full rounded-2xl border border-[#d2d2d7] bg-white" 
+              />
+            </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
-      {/* Password Authentication Modal */}
+      {/* Password Modal */}
       {isAdminOpen && !isAuthenticated && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white/90 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
-            <button onClick={handleCloseAdminModal} className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full">
+            <button onClick={() => setIsAdminOpen(false)} className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full">
               <X className="w-4 h-4" />
             </button>
             <div className="text-center mb-6">
@@ -398,185 +354,112 @@ export default function App() {
   );
 }
 
-// Full Admin Suite: Upload, Edit & Delete with Auto File Size & Precise ID Deletion
-function AppleAdminSuite({ subjects, setSubjects }) {
+// Admin Management Suite connected directly to Firestore
+function AppleAdminSuite({ resources, onDataChange }) {
   const [adminTab, setAdminTab] = useState('upload');
   const [manageSearch, setManageSearch] = useState('');
 
-  // Upload state
-  const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
+  // Form states
+  const [selectedSubject, setSelectedSubject] = useState(EIC_SUBJECTS[0].id);
   const [resourceType, setResourceType] = useState('files');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [instructor, setInstructor] = useState('');
   const [fileSize, setFileSize] = useState('');
   const [fileUrl, setFileUrl] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Edit modal state
+  // Edit target
   const [editingTarget, setEditingTarget] = useState(null);
 
-  // Automatic file size and metadata detection
-  const handleFilePicked = (file) => {
-    if (!file) return;
-
-    // Auto-detect title if empty
-    if (!title) {
-      setTitle(file.name);
-    }
-
-    // Auto-calculate human-readable size
-    let formattedSize = '';
-    if (file.size < 1024 * 1024) {
-      formattedSize = `${(file.size / 1024).toFixed(1)} KB`;
-    } else {
-      formattedSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-    }
-    setFileSize(formattedSize);
-
-    // Create local previewable URL
-    const localUrl = URL.createObjectURL(file);
-    setFileUrl(localUrl);
-  };
-
-  const handleUploadSubmit = (e) => {
+  const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!title) return alert('Please enter a title');
+    if (!title || !fileUrl) return alert('Please provide both a title and a file URL');
 
-    const endpoints = parseDriveLink(fileUrl);
+    try {
+      setIsSubmitting(true);
+      const { downloadUrl, previewUrl } = parseDriveLink(fileUrl);
+      const subjectObj = EIC_SUBJECTS.find(s => s.id === selectedSubject);
 
-    const newItem = {
-      id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      title,
-      name: title,
-      description,
-      summary: description,
-      instructor,
-      author: instructor,
-      type: 'PDF',
-      size: fileSize || '1.0 MB',
-      url: fileUrl || '#',
-      downloadUrl: endpoints.downloadUrl !== '#' ? endpoints.downloadUrl : (fileUrl || '#'),
-      previewUrl: endpoints.previewUrl !== '#' ? endpoints.previewUrl : (fileUrl || '#')
-    };
-
-    const updated = subjects.map((subj) => {
-      if (subj.id === selectedSubject) {
-        return {
-          ...subj,
-          [resourceType]: [...subj[resourceType], newItem]
-        };
-      }
-      return subj;
-    });
-
-    setSubjects(updated);
-    alert('Resource added successfully!');
-    setTitle('');
-    setDescription('');
-    setInstructor('');
-    setFileSize('');
-    setFileUrl('');
-  };
-
-  // Compile resources with unique IDs for exact matching
-  const allResources = [];
-  subjects.forEach(subj => {
-    (subj.files || []).forEach((file, idx) => {
-      allResources.push({
-        ...file,
-        title: file.title || file.name,
-        uniqueKey: file.id || `${subj.id}-files-${idx}`,
-        subjectId: subj.id,
-        subjectName: subj.name,
-        category: 'files'
-      });
-    });
-    (subj.tutorials || []).forEach((tut, idx) => {
-      allResources.push({
-        ...tut,
-        title: tut.title || tut.name,
-        uniqueKey: tut.id || `${subj.id}-tutorials-${idx}`,
-        subjectId: subj.id,
-        subjectName: subj.name,
-        category: 'tutorials'
-      });
-    });
-  });
-
-  const filteredManageResources = allResources.filter(res => {
-    const q = manageSearch.toLowerCase();
-    const title = (res.title || res.name || '').toLowerCase();
-    const subj = (res.subjectName || '').toLowerCase();
-    const desc = (res.description || res.summary || '').toLowerCase();
-    return title.includes(q) || subj.includes(q) || desc.includes(q);
-  });
-
-  // Precise deletion using uniqueKey matching
-  const handleDelete = (resourceToDelete) => {
-    if (confirm(`Are you sure you want to delete "${resourceToDelete.title}"?`)) {
-      const updated = subjects.map(subj => {
-        if (subj.id === resourceToDelete.subjectId) {
-          return {
-            ...subj,
-            [resourceToDelete.category]: subj[resourceToDelete.category].filter(
-              (item, idx) => (item.id || `${subj.id}-${resourceToDelete.category}-${idx}`) !== resourceToDelete.uniqueKey
-            )
-          };
-        }
-        return subj;
+      await addDoc(collection(db, 'resources'), {
+        title,
+        description,
+        instructor,
+        size: fileSize || 'PDF Document',
+        url: fileUrl,
+        downloadUrl,
+        previewUrl,
+        subjectId: selectedSubject,
+        subjectName: subjectObj ? subjectObj.name : selectedSubject,
+        category: resourceType,
+        createdAt: Date.now()
       });
 
-      setSubjects(updated);
+      alert('Resource permanently saved to Firestore database!');
+      setTitle('');
+      setDescription('');
+      setInstructor('');
+      setFileSize('');
+      setFileUrl('');
+      onDataChange();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save to database. Check Firestore permissions.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Precise edit save using uniqueKey matching
-  const handleSaveEdit = (e) => {
-    e.preventDefault();
-    const endpoints = parseDriveLink(editingTarget.url);
-
-    const updated = subjects.map(subj => {
-      if (subj.id === editingTarget.subjectId) {
-        return {
-          ...subj,
-          [editingTarget.category]: subj[editingTarget.category].map((item, idx) => {
-            const currentKey = item.id || `${subj.id}-${editingTarget.category}-${idx}`;
-            if (currentKey === editingTarget.uniqueKey) {
-              return {
-                ...item,
-                title: editingTarget.title,
-                name: editingTarget.title,
-                description: editingTarget.description,
-                summary: editingTarget.description,
-                instructor: editingTarget.instructor,
-                author: editingTarget.instructor,
-                size: editingTarget.size,
-                url: editingTarget.url,
-                downloadUrl: endpoints.downloadUrl !== '#' ? endpoints.downloadUrl : (editingTarget.url || '#'),
-                previewUrl: endpoints.previewUrl !== '#' ? endpoints.previewUrl : (editingTarget.url || '#'),
-                type: editingTarget.type || 'PDF'
-              };
-            }
-            return item;
-          })
-        };
+  const handleDelete = async (resource) => {
+    if (confirm(`Permanently delete "${resource.title}" from the database?`)) {
+      try {
+        await deleteDoc(doc(db, 'resources', resource.id));
+        alert('File record deleted!');
+        onDataChange();
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete.');
       }
-      return subj;
-    });
-
-    setSubjects(updated);
-    setEditingTarget(null);
-    alert('Changes saved successfully!');
+    }
   };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    try {
+      const { downloadUrl, previewUrl } = parseDriveLink(editingTarget.url);
+      const docRef = doc(db, 'resources', editingTarget.id);
+
+      await updateDoc(docRef, {
+        title: editingTarget.title,
+        description: editingTarget.description,
+        instructor: editingTarget.instructor,
+        size: editingTarget.size,
+        url: editingTarget.url,
+        downloadUrl,
+        previewUrl
+      });
+
+      setEditingTarget(null);
+      alert('Record updated!');
+      onDataChange();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update.');
+    }
+  };
+
+  const filteredResources = resources.filter(res => 
+    (res.title || '').toLowerCase().includes(manageSearch.toLowerCase()) ||
+    (res.subjectName || '').toLowerCase().includes(manageSearch.toLowerCase()) ||
+    (res.description && res.description.toLowerCase().includes(manageSearch.toLowerCase()))
+  );
 
   return (
     <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-2xl border border-[#d2d2d7] rounded-3xl p-8 shadow-xl">
-      {/* Control Switcher Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-[#f5f5f7]">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">EIC Curriculum Manager</h2>
-          <p className="text-xs text-[#86868b]">Upload, edit details, or remove academic materials.</p>
+          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Live Database Management</h2>
+          <p className="text-xs text-[#86868b]">All changes persist immediately for every student across the web.</p>
         </div>
 
         <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7]">
@@ -610,7 +493,6 @@ function AppleAdminSuite({ subjects, setSubjects }) {
         </div>
       </div>
 
-      {/* Upload View */}
       {adminTab === 'upload' && (
         <form onSubmit={handleUploadSubmit} className="space-y-5">
           <div>
@@ -620,7 +502,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               onChange={(e) => setSelectedSubject(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
             >
-              {subjects.map(s => (
+              {EIC_SUBJECTS.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
@@ -639,12 +521,10 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">
-                File Size <span className="text-[10px] text-[#0071e3] lowercase font-normal">(auto-detected)</span>
-              </label>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">File Size</label>
               <input 
                 type="text" 
-                placeholder="Auto-calculates on file drop"
+                placeholder="e.g., 4.2 MB"
                 value={fileSize} 
                 onChange={(e) => setFileSize(e.target.value)}
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -656,7 +536,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
             <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Resource Title</label>
             <input 
               type="text" 
-              placeholder="e.g., Tutorial Sheet 2 / State Space Analysis" 
+              placeholder="e.g., Tutorial Sheet 1 / Op-Amps Derivation" 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -669,31 +549,29 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Instructor / Author</label>
               <input 
                 type="text" 
-                placeholder="e.g., Prof. Smith" 
+                placeholder="e.g., Prof. Sharma" 
                 value={instructor}
                 onChange={(e) => setInstructor(e.target.value)}
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider flex items-center justify-between mb-2">
-                <span>Direct File URL / Google Drive</span>
-                <span className="text-[10px] text-[#0071e3] font-normal">Auto-formats Drive links</span>
-              </label>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Google Drive Share Link</label>
               <input 
                 type="text" 
-                placeholder="https://drive.google.com/file/d/... or direct link" 
+                placeholder="https://drive.google.com/..." 
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}
                 className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                required
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Description / Topics</label>
+            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Description / Topics Covered</label>
             <textarea 
-              placeholder="Add summary notes or topics covered..."
+              placeholder="Add summary notes or problem numbers..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows="2"
@@ -701,55 +579,23 @@ function AppleAdminSuite({ subjects, setSubjects }) {
             />
           </div>
 
-          {/* Drag & Drop Upload Zone with Size Auto-Detection */}
-          <div 
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => { 
-              e.preventDefault(); 
-              setIsDragging(false); 
-              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                handleFilePicked(e.dataTransfer.files[0]);
-              }
-            }}
-            className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition relative ${
-              isDragging ? 'border-[#0071e3] bg-[#0071e3]/5' : 'border-[#d2d2d7] bg-[#f5f5f7]/40 hover:border-[#86868b]'
-            }`}
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20 disabled:opacity-50"
           >
-            <input 
-              type="file" 
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleFilePicked(e.target.files[0]);
-                }
-              }}
-            />
-            <Upload className="w-6 h-6 text-[#0071e3] mx-auto mb-2 pointer-events-none" />
-            <p className="text-xs text-[#1d1d1f] font-medium pointer-events-none">
-              {title ? `Selected: ${title}` : 'Drag & drop file here or click to browse'}
-            </p>
-            {fileSize && (
-              <p className="text-[11px] text-[#0071e3] mt-1 pointer-events-none font-medium">
-                Detected Size: {fileSize}
-              </p>
-            )}
-          </div>
-
-          <button type="submit" className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20">
-            Publish to EIC Curriculum
+            {isSubmitting ? 'Saving to Database...' : 'Publish to Live Database'}
           </button>
         </form>
       )}
 
-      {/* Edit & Delete Search View */}
       {(adminTab === 'edit' || adminTab === 'delete') && (
         <div>
           <div className="relative mb-6">
             <Search className="w-4 h-4 text-[#86868b] absolute left-4 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
-              placeholder={`Search files to ${adminTab} by title or subject...`}
+              placeholder={`Search database records to ${adminTab}...`}
               value={manageSearch}
               onChange={(e) => setManageSearch(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
@@ -757,9 +603,9 @@ function AppleAdminSuite({ subjects, setSubjects }) {
           </div>
 
           <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
-            {filteredManageResources.length > 0 ? (
-              filteredManageResources.map((res) => (
-                <div key={res.uniqueKey} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
+            {filteredResources.length > 0 ? (
+              filteredResources.map((res) => (
+                <div key={res.id} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
                   <div className="pr-4">
                     <div className="flex items-center space-x-2 mb-1">
                       <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${res.category === 'files' ? 'bg-[#0071e3]/10 text-[#0071e3]' : 'bg-[#34c759]/10 text-[#34c759]'}`}>
@@ -767,7 +613,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
                       </span>
                       <h4 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-sm">{res.title}</h4>
                     </div>
-                    <p className="text-[11px] text-[#86868b]">{res.subjectName} • {res.size || 'N/A'}</p>
+                    <p className="text-[11px] text-[#86868b]">{res.subjectName} • {res.size || 'PDF'}</p>
                   </div>
 
                   <div className="shrink-0">
@@ -792,7 +638,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[#86868b] text-center py-10">No matching materials found.</p>
+              <p className="text-xs text-[#86868b] text-center py-10">No matching database records found.</p>
             )}
           </div>
         </div>
@@ -845,12 +691,13 @@ function AppleAdminSuite({ subjects, setSubjects }) {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Direct File URL / Google Drive</label>
+                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Google Drive Link</label>
                 <input 
                   type="text" 
                   value={editingTarget.url || ''}
                   onChange={(e) => setEditingTarget({ ...editingTarget, url: e.target.value })}
                   className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                  required
                 />
               </div>
 
@@ -876,7 +723,7 @@ function AppleAdminSuite({ subjects, setSubjects }) {
                   type="submit" 
                   className="w-1/2 bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-xs transition shadow-md shadow-[#0071e3]/20"
                 >
-                  Save Changes
+                  Save to Database
                 </button>
               </div>
             </form>
