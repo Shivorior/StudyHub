@@ -12,7 +12,7 @@ export default function App() {
   // Navigation state
   const [selectedBranch, setSelectedBranch] = useState('EIC');
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
-  const [activeTab, setActiveTab] = useState('files'); // 'files' or 'tutorials'
+  const [activeTab, setActiveTab] = useState('files');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Preview Modal state
@@ -27,17 +27,43 @@ export default function App() {
     { id: 'CIVIL', name: 'Civil Engineering (CIVIL)' }
   ];
 
-  // Secret shortcut: Ctrl + Shift + A (or Cmd + Shift + A on macOS)
+  // Listen to URL Hash changes (e.g., typing yoursite.com/#admin)
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') {
+        setIsAdminOpen(true);
+      }
+    };
+
+    // Check on initial page load if hash is already #admin
+    if (window.location.hash === '#admin') {
+      setIsAdminOpen(true);
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Secret keyboard shortcut: Ctrl + Shift + A (or Cmd + Shift + A on macOS)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
         e.preventDefault();
+        window.location.hash = '#admin';
         setIsAdminOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // When closing the admin modal without logging in, clear the hash so it doesn't loop
+  const handleCloseAdminModal = () => {
+    setIsAdminOpen(false);
+    if (!isAuthenticated) {
+      window.location.hash = '';
+    }
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -53,7 +79,6 @@ export default function App() {
 
   const currentSubjectData = subjects.find(s => s.id === selectedSubject) || subjects[0] || { name: 'Subject', files: [], tutorials: [] };
 
-  // Filtered lists based on search query across the current subject's files & tutorials
   const filteredFiles = (currentSubjectData.files || []).filter(file => {
     const title = (file.title || file.name || '').toLowerCase();
     const desc = (file.description || file.summary || '').toLowerCase();
@@ -83,19 +108,23 @@ export default function App() {
         <div className="flex items-center space-x-4">
           {viewMode === 'admin' && (
             <button 
-              onClick={() => setViewMode('viewer')}
+              onClick={() => {
+                setViewMode('viewer');
+                window.location.hash = '';
+              }}
               className="text-xs font-medium bg-[#e8e8ed] hover:bg-[#d2d2d7] px-3.5 py-1.5 rounded-full transition"
             >
               Exit Admin
             </button>
           )}
-          <button 
-            onClick={() => setIsAdminOpen(true)}
+          {/* Subtle Admin Icon Link */}
+          <a 
+            href="#admin"
             className="p-2 text-[#86868b] hover:text-[#1d1d1f] transition rounded-full"
             title="Admin Access"
           >
             <Shield className="w-4 h-4" />
-          </button>
+          </a>
         </div>
       </header>
 
@@ -103,7 +132,6 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-6 py-10">
         {viewMode === 'viewer' ? (
           <div>
-            {/* Branch Selector Header */}
             <div className="text-center max-w-2xl mx-auto mb-10">
               <h2 className="text-3xl font-semibold tracking-tight text-[#1d1d1f] mb-2">Second Year Curriculum</h2>
               <p className="text-[#86868b] text-sm mb-6">Select your engineering branch to access curriculum materials.</p>
@@ -125,7 +153,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Branch Content View */}
             {selectedBranch !== 'EIC' ? (
               <div className="bg-white/60 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-16 text-center max-w-xl mx-auto shadow-sm">
                 <div className="w-14 h-14 bg-[#0071e3]/10 text-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -138,7 +165,7 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Left Column: Subjects Menu Bar with Dock Hover Effect */}
+                {/* Left Column: Subjects Menu */}
                 <div className="lg:col-span-1 space-y-2">
                   <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#86868b] px-3 mb-3">EIC Subjects</h3>
                   {subjects.map(subject => (
@@ -146,7 +173,7 @@ export default function App() {
                       key={subject.id}
                       onClick={() => {
                         setSelectedSubject(subject.id);
-                        setSearchQuery(''); // reset search when changing subject
+                        setSearchQuery('');
                       }}
                       className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 origin-left hover:scale-105 active:scale-95 hover:z-20 hover:shadow-lg ${
                         selectedSubject === subject.id
@@ -168,7 +195,6 @@ export default function App() {
                       <p className="text-xs text-[#86868b] mt-1">Preview items in-browser or download them instantly.</p>
                     </div>
 
-                    {/* Sub-menu Toggle Tabs */}
                     <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7]">
                       <button
                         onClick={() => setActiveTab('files')}
@@ -189,7 +215,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Search Bar for Subject Materials */}
                   <div className="relative mb-6">
                     <Search className="w-4 h-4 text-[#86868b] absolute left-4 top-1/2 -translate-y-1/2" />
                     <input 
@@ -201,7 +226,6 @@ export default function App() {
                     />
                   </div>
 
-                  {/* Active List Display with Preview & Download Actions */}
                   <div className="space-y-3">
                     {activeTab === 'files' ? (
                       filteredFiles.length > 0 ? (
@@ -281,59 +305,38 @@ export default function App() {
         )}
       </main>
 
-      {/* In-Browser Document Preview Modal */}
+      {/* Preview Modal */}
       {previewItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
-          <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
+          <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
             <div className="px-6 py-4 border-b border-[#d2d2d7] flex items-center justify-between bg-[#f5f5f7]/80">
               <div>
                 <h3 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-md">{previewItem.title || previewItem.name}</h3>
                 <p className="text-[11px] text-[#86868b]">In-browser document preview mode</p>
               </div>
               <div className="flex items-center space-x-3">
-                <a 
-                  href={previewItem.url || previewItem.downloadUrl || '#'} 
-                  download 
-                  className="px-3.5 py-1.5 bg-[#0071e3] text-white text-xs font-medium rounded-full shadow-sm hover:bg-[#0077ed] transition flex items-center space-x-1"
-                >
+                <a href={previewItem.url || previewItem.downloadUrl || '#'} download className="px-3.5 py-1.5 bg-[#0071e3] text-white text-xs font-medium rounded-full shadow-sm hover:bg-[#0077ed] transition flex items-center space-x-1">
                   <Download className="w-3.5 h-3.5" />
                   <span>Download</span>
                 </a>
-                <button 
-                  onClick={() => setPreviewItem(null)}
-                  className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition"
-                >
+                <button onClick={() => setPreviewItem(null)} className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
-
-            {/* Modal Body */}
             <div className="flex-1 bg-[#e8e8ed]/40 flex items-center justify-center p-4">
               {((previewItem.url && previewItem.url !== '#') || (previewItem.previewUrl && previewItem.previewUrl !== '#')) ? (
-                <iframe 
-                  src={previewItem.url && previewItem.url !== '#' ? previewItem.url : previewItem.previewUrl} 
-                  title={previewItem.title || previewItem.name} 
-                  className="w-full h-full rounded-2xl border border-[#d2d2d7] bg-white"
-                />
+                <iframe src={previewItem.url && previewItem.url !== '#' ? previewItem.url : previewItem.previewUrl} title={previewItem.title || previewItem.name} className="w-full h-full rounded-2xl border border-[#d2d2d7] bg-white" />
               ) : (
                 <div className="text-center p-8 max-w-sm">
                   <FileText className="w-12 h-12 text-[#86868b] mx-auto mb-3" />
                   <h4 className="font-semibold text-base mb-1">Previewing: {previewItem.title || previewItem.name}</h4>
-                  <p className="text-xs text-[#86868b] mb-4">
-                    {previewItem.description || previewItem.summary || 'Class academic resource material.'}
-                  </p>
+                  <p className="text-xs text-[#86868b] mb-4">{previewItem.description || previewItem.summary || 'Class academic resource material.'}</p>
                   <div className="inline-block px-3 py-1 rounded-full bg-[#0071e3]/10 text-[#0071e3] font-mono text-xs mb-5">
                     {previewItem.size || '3.2 MB'} • {previewItem.type || 'PDF'}
                   </div>
                   <br />
-                  <button 
-                    onClick={() => setPreviewItem(null)}
-                    className="px-4 py-2 bg-[#1d1d1f] text-white text-xs font-medium rounded-full"
-                  >
-                    Close Preview
-                  </button>
+                  <button onClick={() => setPreviewItem(null)} className="px-4 py-2 bg-[#1d1d1f] text-white text-xs font-medium rounded-full">Close</button>
                 </div>
               )}
             </div>
@@ -341,12 +344,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Apple-style Password Modal */}
+      {/* Password Modal triggered by typing #admin in URL or clicking shield */}
       {isAdminOpen && !isAuthenticated && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white/90 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
             <button 
-              onClick={() => setIsAdminOpen(false)}
+              onClick={handleCloseAdminModal}
               className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full"
             >
               <X className="w-4 h-4" />
@@ -355,8 +358,8 @@ export default function App() {
               <div className="w-12 h-12 bg-[#0071e3]/10 text-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <Lock className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold text-xl tracking-tight">Admin Authentication</h3>
-              <p className="text-xs text-[#86868b] mt-1">Enter your password to upload materials.</p>
+              <h3 className="font-semibold text-xl tracking-tight">Admin Codeword Detected</h3>
+              <p className="text-xs text-[#86868b] mt-1">Enter your password to unlock resource publishing.</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <input 
@@ -381,7 +384,7 @@ export default function App() {
   );
 }
 
-// Admin Upload Dashboard with full metadata inputs
+// Admin Dashboard Component
 function AppleAdminDashboard({ subjects, setSubjects }) {
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || '');
   const [resourceType, setResourceType] = useState('files');
@@ -410,10 +413,7 @@ function AppleAdminDashboard({ subjects, setSubjects }) {
           url: fileUrl || '#',
           downloadUrl: fileUrl || '#'
         };
-        return {
-          ...subj,
-          [resourceType]: [...(subj[resourceType] || []), newItem]
-        };
+        return { ...subj, [resourceType]: [...(subj[resourceType] || []), newItem] };
       }
       return subj;
     });
