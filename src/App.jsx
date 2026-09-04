@@ -182,9 +182,11 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Hash listener for #parth! codeword
   useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#admin') {
+      const hash = decodeURIComponent(window.location.hash);
+      if (hash === '#parth!' || window.location.hash === '#parth!') {
         if (currentUser) {
           setViewMode('admin');
         } else {
@@ -192,13 +194,16 @@ export default function App() {
         }
       }
     };
-    if (window.location.hash === '#admin') {
+
+    const initialHash = decodeURIComponent(window.location.hash);
+    if (initialHash === '#parth!' || window.location.hash === '#parth!') {
       if (currentUser) {
         setViewMode('admin');
       } else {
         setIsAdminOpen(true);
       }
     }
+
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [currentUser]);
@@ -218,7 +223,7 @@ export default function App() {
   const handleLogout = async () => {
     await signOut(auth);
     setViewMode('viewer');
-    window.location.hash = '';
+    window.history.replaceState(null, '', window.location.pathname);
   };
 
   const currentBranchSubjects = subjects.filter(s => s.branchId === selectedBranch);
@@ -292,10 +297,14 @@ export default function App() {
 
           {viewMode === 'admin' && (
             <button 
-              onClick={handleLogout}
-              className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm ml-2"
+              onClick={() => {
+                setViewMode('viewer');
+                // Cleans the URL bar completely without leaving a hanging '#'
+                window.history.replaceState(null, '', window.location.pathname);
+              }}
+              className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm"
             >
-              Sign Out (Exit Admin)
+              Exit Admin
             </button>
           )}
         </div>
