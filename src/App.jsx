@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle } from 'lucide-react';
+import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle, BookOpen, Layers, GitBranch, Sparkles } from 'lucide-react';
 import { db } from './firebase';
 import { 
   collection, 
@@ -10,29 +10,43 @@ import {
   doc 
 } from 'firebase/firestore';
 
-// Static branch subjects list
-const EIC_SUBJECTS = [
-  { id: 'analog', name: 'Analog Devices and Circuits' },
-  { id: 'signals', name: 'Mathematics for Signals' },
-  { id: 'digital', name: 'Digital Electronics' },
-  { id: 'mst', name: 'Measurement Science and Techniques' },
-  { id: 'buggy', name: 'EDP (Buggy)' },
-  { id: 'dsa', name: 'Data Structures & Algorithms' },
-  { id: 'maths', name: 'Mathematics & Linear Algebra' },
-  { id: 'physics', name: 'Physics for Engineers' },
-  { id: 'os', name: 'Operating Systems & Architecture' },
-  { id: 'ml', name: 'Machine Learning & Neural Nets' },
-  { id: 'web', name: 'Full-Stack Web Development' },
-  { id: 'aptitude', name: 'Aptitude Skills' },
-  { id: 'ai', name: 'AI for Engineers' }
+// Initial fallback seeds if Firestore is completely brand new
+const SEED_BRANCHES = [
+  { branchCode: 'EIC', name: 'Electronics Instrumentation & Control (EIC)' },
+  { branchCode: 'CSE', name: 'Computer Science & Engineering (CSE)' },
+  { branchCode: 'ECE', name: 'Electronics & Communication (ECE)' },
+  { branchCode: 'MECH', name: 'Mechanical Engineering (MECH)' },
+  { branchCode: 'CIVIL', name: 'Civil Engineering (CIVIL)' }
 ];
 
-function withTimeout(promise, timeoutMs = 10000, errorMsg = 'Database request timed out') {
+const INITIAL_EIC_SUBJECTS = [
+  "Analog Devices and Circuits",
+  "Mathematics for Signals",
+  "Digital Electronics",
+  "Measurement Science and Techniques",
+  "EDP (Buggy)",
+  "Data Structures & Algorithms",
+  "Mathematics & Linear Algebra",
+  "Physics for Engineers",
+  "Operating Systems & Architecture",
+  "Machine Learning & Neural Nets",
+  "Full-Stack Web Development",
+  "Aptitude Skills",
+  "Environmental Science (EVS)",
+  "Control Systems Engineering",
+  "Microprocessors & Microcontrollers",
+  "Transducers & Sensors"
+];
+
+// Helper: Timeout wrapper to prevent eternal hanging on network drops
+const withTimeout = (promise, ms = 10000) => {
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), timeoutMs))
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database request timed out. Please check your internet or Firebase rules.')), ms)
+    )
   ]);
-}
+};
 
 export function parseDriveLink(inputUrl) {
   if (!inputUrl) return { downloadUrl: '#', previewUrl: '#' };
@@ -49,6 +63,8 @@ export function parseDriveLink(inputUrl) {
 
 export default function App() {
   const [resources, setResources] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -57,50 +73,63 @@ export default function App() {
 
   // Viewer state
   const [selectedBranch, setSelectedBranch] = useState('EIC');
-  const [selectedSubject, setSelectedSubject] = useState(EIC_SUBJECTS[0].id);
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [activeTab, setActiveTab] = useState('files');
   const [searchQuery, setSearchQuery] = useState('');
   const [previewItem, setPreviewItem] = useState(null);
 
-  const branches = [
-    { id: 'EIC', name: 'Electronics Instrumentation & Control (EIC)' },
-    { id: 'CSE', name: 'Computer Science & Engineering (CSE)' },
-    { id: 'ECE', name: 'Electronics & Communication (ECE)' },
-    { id: 'MECH', name: 'Mechanical Engineering (MECH)' },
-    { id: 'CIVIL', name: 'Civil Engineering (CIVIL)' }
-  ];
-
-  // Fetch all resources live from Firestore
-  const fetchResources = async () => {
+  // Fetch branches, subjects, and resources
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const querySnapshot = await withTimeout(
-        getDocs(collection(db, 'resources')),
-        8000,
-        'Could not fetch resources from Firestore'
-      );
-      const items = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setResources(items);
+      const [resSnap, subjSnap, branchSnap] = await Promise.all([
+        withTimeout(getDocs(collection(db, 'resources'))),
+        withTimeout(getDocs(collection(db, 'subjects'))),
+        withTimeout(getDocs(collection(db, 'branches')))
+      ]);
+
+      const loadedResources = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const loadedSubjects = subjSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let loadedBranches = branchSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Auto-seed default branches if database collection is empty
+      if (loadedBranches.length === 0) {
+        loadedBranches = SEED_BRANCHES.map((b, idx) => ({ id: `default-${idx}`, ...b }));
+      }
+
+      setResources(loadedResources);
+      setSubjects(loadedSubjects);
+      setBranches(loadedBranches);
+
+      if (!selectedBranch && loadedBranches.length > 0) {
+        setSelectedBranch(loadedBranches[0].branchCode);
+      }
     } catch (err) {
-      console.error("Firestore read error: ", err);
+      console.error("Firestore sync error: ", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchResources();
+    fetchData();
   }, []);
 
-  // Hash listener for #admin codeword
+  // Update active subject when switching branches
+  useEffect(() => {
+    const branchSubjs = subjects.filter(s => s.branchId === selectedBranch);
+    if (branchSubjs.length > 0) {
+      setSelectedSubject(branchSubjs[0].id);
+    } else {
+      setSelectedSubject('');
+    }
+    setSearchQuery('');
+  }, [selectedBranch, subjects]);
+
+  // Hash listener for #admin
   useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#admin') {
-        setIsAdminOpen(true);
-      }
+      if (window.location.hash === '#admin') setIsAdminOpen(true);
     };
     if (window.location.hash === '#admin') setIsAdminOpen(true);
     window.addEventListener('hashchange', handleHashChange);
@@ -119,21 +148,26 @@ export default function App() {
     }
   };
 
-  const currentSubjectData = EIC_SUBJECTS.find(s => s.id === selectedSubject) || EIC_SUBJECTS[0];
+  const currentBranchSubjects = subjects.filter(s => s.branchId === selectedBranch);
+  const currentSubjectData = currentBranchSubjects.find(s => s.id === selectedSubject);
 
-  // Filter items matching active subject & category
-  const activeSubjectResources = resources.filter(r => r.subjectId === selectedSubject);
+  // Match resources by ID or subject name for backwards compatibility
+  const activeSubjectResources = resources.filter(r => 
+    r.subjectId === selectedSubject || 
+    (currentSubjectData && (r.subjectName === currentSubjectData.name || r.subjectId === currentSubjectData.name.toLowerCase()))
+  );
   const subjectFiles = activeSubjectResources.filter(r => r.category === 'files');
   const subjectTutorials = activeSubjectResources.filter(r => r.category === 'tutorials');
 
   const filteredDisplayItems = (activeTab === 'files' ? subjectFiles : subjectTutorials).filter(item =>
-    (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans selection:bg-blue-500 selection:text-white">
       <header className="sticky top-0 z-40 bg-[#f5f5f7]/80 backdrop-blur-md border-b border-[#d2d2d7]/60 px-8 py-4 flex justify-between items-center transition-all">
+        {/* Scroll-to-top Header Brand */}
         <button 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
           className="flex items-center space-x-3 text-left group focus:outline-none transition-transform active:scale-95"
@@ -172,10 +206,10 @@ export default function App() {
               <div className="flex flex-wrap justify-center gap-2">
                 {branches.map(branch => (
                   <button
-                    key={branch.id}
-                    onClick={() => setSelectedBranch(branch.id)}
+                    key={branch.id || branch.branchCode}
+                    onClick={() => setSelectedBranch(branch.branchCode)}
                     className={`px-4 py-2 rounded-full text-xs font-medium transition shadow-sm ${
-                      selectedBranch === branch.id 
+                      selectedBranch === branch.branchCode 
                         ? 'bg-[#1d1d1f] text-white' 
                         : 'bg-white/80 border border-[#d2d2d7] text-[#1d1d1f] hover:bg-white'
                     }`}
@@ -186,29 +220,29 @@ export default function App() {
               </div>
             </div>
 
-            {selectedBranch !== 'EIC' ? (
+            {currentBranchSubjects.length === 0 ? (
               <div className="bg-white/60 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-16 text-center max-w-xl mx-auto shadow-sm">
                 <div className="w-14 h-14 bg-[#0071e3]/10 text-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Clock className="w-7 h-7" />
                 </div>
                 <h3 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-2">Coming Soon</h3>
                 <p className="text-[#86868b] text-sm">
-                  Resources for this branch are currently being prepared. Switch to the EIC branch for active material.
+                  No subjects have been configured for {selectedBranch} yet. Add them in the Admin Panel.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Subjects Menu */}
+                {/* Subjects Column */}
                 <div className="lg:col-span-1 space-y-2">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#86868b] px-3 mb-3">EIC Subjects</h3>
-                  {EIC_SUBJECTS.map(subject => (
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#86868b] px-3 mb-3">{selectedBranch} Subjects</h3>
+                  {currentBranchSubjects.map(subject => (
                     <button
                       key={subject.id}
                       onClick={() => {
                         setSelectedSubject(subject.id);
                         setSearchQuery('');
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 origin-left hover:scale-105 active:scale-95 hover:z-20 hover:shadow-lg ${
+                      className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 origin-left hover:scale-105 active:scale-95 hover:z-20 hover:shadow-lg flex items-center justify-between ${
                         selectedSubject === subject.id
                           ? 'bg-[#0071e3] text-white shadow-md shadow-[#0071e3]/25 scale-105 z-10'
                           : 'bg-white/70 hover:bg-white text-[#1d1d1f] border border-[#d2d2d7]/60 hover:border-[#86868b]/60'
@@ -220,11 +254,11 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Content Viewer */}
+                {/* Content Viewer Column */}
                 <div className="lg:col-span-3 bg-white/80 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#f5f5f7]">
                     <div>
-                      <h3 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">{currentSubjectData.name}</h3>
+                      <h3 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">{currentSubjectData ? currentSubjectData.name : 'Select a Subject'}</h3>
                       <p className="text-xs text-[#86868b] mt-1">Preview items in-browser or download them instantly.</p>
                     </div>
 
@@ -252,7 +286,7 @@ export default function App() {
                     <Search className="w-4 h-4 text-[#86868b] absolute left-4 top-1/2 -translate-y-1/2" />
                     <input 
                       type="text"
-                      placeholder={`Search in ${currentSubjectData.name}...`}
+                      placeholder={`Search in ${currentSubjectData ? currentSubjectData.name : ''}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
@@ -303,7 +337,9 @@ export default function App() {
         ) : (
           <AppleAdminSuite 
             resources={resources} 
-            onDataChange={fetchResources} 
+            subjects={subjects}
+            branches={branches}
+            onDataChange={fetchData} 
           />
         )}
       </main>
@@ -338,7 +374,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Password Modal */}
+      {/* Admin Authorization Modal */}
       {isAdminOpen && !isAuthenticated && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white/90 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
@@ -372,13 +408,25 @@ export default function App() {
   );
 }
 
-// Admin Management Suite connected directly to Firestore
-function AppleAdminSuite({ resources, onDataChange }) {
+// Admin Management Suite with Branches, Subjects, and Upload Tabs
+function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
   const [adminTab, setAdminTab] = useState('upload');
   const [manageSearch, setManageSearch] = useState('');
 
-  // Form states
-  const [selectedSubject, setSelectedSubject] = useState(EIC_SUBJECTS[0].id);
+  // Branch Form States
+  const [newBranchCode, setNewBranchCode] = useState('');
+  const [newBranchFullName, setNewBranchFullName] = useState('');
+  const [isAddingBranch, setIsAddingBranch] = useState(false);
+
+  // Subject Form States
+  const [targetBranchForSubject, setTargetBranchForSubject] = useState(branches[0]?.branchCode || 'EIC');
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  // Resource Upload Form States
+  const [selectedBranch, setSelectedBranch] = useState(branches[0]?.branchCode || 'EIC');
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [resourceType, setResourceType] = useState('files');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -390,34 +438,171 @@ function AppleAdminSuite({ resources, onDataChange }) {
   // Edit target
   const [editingTarget, setEditingTarget] = useState(null);
 
+  const branchSubjects = subjects.filter(s => s.branchId === selectedBranch);
+
+  useEffect(() => {
+    if (branchSubjects.length > 0 && !branchSubjects.some(s => s.id === selectedSubject)) {
+      setSelectedSubject(branchSubjects[0].id);
+    } else if (branchSubjects.length === 0) {
+      setSelectedSubject('');
+    }
+  }, [selectedBranch, subjects]);
+
+  // Branch Add Handler
+  const handleAddBranch = async (e) => {
+    e.preventDefault();
+    const code = newBranchCode.trim().toUpperCase();
+    const name = newBranchFullName.trim();
+    if (!code || !name) return alert('Please enter both branch code and name.');
+
+    if (branches.some(b => b.branchCode === code)) {
+      return alert(`Branch code "${code}" already exists.`);
+    }
+
+    try {
+      setIsAddingBranch(true);
+      await withTimeout(addDoc(collection(db, 'branches'), {
+        branchCode: code,
+        name: `${name} (${code})`,
+        createdAt: Date.now()
+      }));
+      setNewBranchCode('');
+      setNewBranchFullName('');
+      alert(`Branch ${code} added!`);
+      onDataChange();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add branch: ' + err.message);
+    } finally {
+      setIsAddingBranch(false);
+    }
+  };
+
+  // Branch Delete Handler
+  const handleDeleteBranch = async (branch) => {
+    const hasSubjects = subjects.some(s => s.branchId === branch.branchCode);
+    const confirmMsg = hasSubjects
+      ? `Warning: "${branch.name}" contains subjects. Deleting this branch will make those subjects inaccessible. Delete anyway?`
+      : `Delete branch "${branch.name}"?`;
+
+    if (confirm(confirmMsg)) {
+      try {
+        if (branch.id && !branch.id.startsWith('default-')) {
+          await withTimeout(deleteDoc(doc(db, 'branches', branch.id)));
+        } else {
+          // If deleting a seed branch for the first time, save the remaining ones to Firestore
+          const remaining = branches.filter(b => b.branchCode !== branch.branchCode);
+          for (const b of remaining) {
+            await addDoc(collection(db, 'branches'), {
+              branchCode: b.branchCode,
+              name: b.name,
+              createdAt: Date.now()
+            });
+          }
+        }
+        alert('Branch deleted!');
+        onDataChange();
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete branch: ' + err.message);
+      }
+    }
+  };
+
+  // Quick Seed Default EIC Subjects
+  const handleSeedEIC = async () => {
+    if (!confirm('Add the 16 standard EIC curriculum subjects to the database?')) return;
+    try {
+      setIsSeeding(true);
+      for (const subjName of INITIAL_EIC_SUBJECTS) {
+        const exists = subjects.some(s => s.branchId === 'EIC' && s.name.toLowerCase() === subjName.toLowerCase());
+        if (!exists) {
+          await addDoc(collection(db, 'subjects'), {
+            name: subjName,
+            branchId: 'EIC',
+            createdAt: Date.now()
+          });
+        }
+      }
+      alert('Standard EIC curriculum subjects added successfully!');
+      onDataChange();
+    } catch (err) {
+      console.error(err);
+      alert('Error seeding subjects: ' + err.message);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  // Subject Add Handler
+  const handleAddSubject = async (e) => {
+    e.preventDefault();
+    if (!newSubjectName.trim()) return alert('Please enter a subject name');
+
+    try {
+      setIsAddingSubject(true);
+      await withTimeout(addDoc(collection(db, 'subjects'), {
+        name: newSubjectName.trim(),
+        branchId: targetBranchForSubject,
+        createdAt: Date.now()
+      }));
+      setNewSubjectName('');
+      alert(`Subject added to ${targetBranchForSubject}!`);
+      onDataChange();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add subject: ' + err.message);
+    } finally {
+      setIsAddingSubject(false);
+    }
+  };
+
+  // Subject Delete Handler
+  const handleDeleteSubject = async (subject) => {
+    const hasFiles = resources.some(r => r.subjectId === subject.id || r.subjectName === subject.name);
+    const confirmMsg = hasFiles 
+      ? `Warning: "${subject.name}" contains uploaded resources. Deleting it will leave those resources inaccessible. Delete anyway?`
+      : `Delete subject "${subject.name}"?`;
+
+    if (confirm(confirmMsg)) {
+      try {
+        await withTimeout(deleteDoc(doc(db, 'subjects', subject.id)));
+        alert('Subject deleted!');
+        onDataChange();
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete subject: ' + err.message);
+      }
+    }
+  };
+
+  // Resource Upload Handler
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedSubject) return alert('Please select a subject or create one first.');
     if (!title || !fileUrl) return alert('Please provide both a title and a file URL');
 
     try {
       setIsSubmitting(true);
       const { downloadUrl, previewUrl } = parseDriveLink(fileUrl);
-      const subjectObj = EIC_SUBJECTS.find(s => s.id === selectedSubject);
+      const subjectObj = subjects.find(s => s.id === selectedSubject);
 
-      await withTimeout(
-        addDoc(collection(db, 'resources'), {
-          title,
-          description,
-          instructor,
-          size: fileSize || 'PDF Document',
-          url: fileUrl,
-          downloadUrl,
-          previewUrl,
-          subjectId: selectedSubject,
-          subjectName: subjectObj ? subjectObj.name : selectedSubject,
-          category: resourceType,
-          createdAt: Date.now()
-        }),
-        8000,
-        'Firestore write timed out. Please make sure your Firestore Database Security Rules allow read/write.'
-      );
+      await withTimeout(addDoc(collection(db, 'resources'), {
+        title,
+        description,
+        instructor,
+        size: fileSize || 'PDF Document',
+        url: fileUrl,
+        downloadUrl,
+        previewUrl,
+        branchId: selectedBranch,
+        subjectId: selectedSubject,
+        subjectName: subjectObj ? subjectObj.name : 'Unknown Subject',
+        category: resourceType,
+        createdAt: Date.now()
+      }));
 
-      alert('Resource permanently saved to Firestore database!');
+      alert('Resource permanently saved to database!');
       setTitle('');
       setDescription('');
       setInstructor('');
@@ -425,26 +610,28 @@ function AppleAdminSuite({ resources, onDataChange }) {
       setFileUrl('');
       onDataChange();
     } catch (err) {
-      console.error("Firestore write error: ", err);
-      alert(`Save failed: ${err.message || err}\n\nTip: In the Firebase Console, make sure Firestore Database is created and Rules are set to: allow read, write: if true;`);
+      console.error(err);
+      alert('Failed to save resource: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Resource Delete Handler
   const handleDelete = async (resource) => {
-    if (confirm(`Permanently delete "${resource.title}" from the database?`)) {
+    if (confirm(`Permanently delete "${resource.title}"?`)) {
       try {
-        await withTimeout(deleteDoc(doc(db, 'resources', resource.id)), 8000, 'Firestore delete timed out.');
+        await withTimeout(deleteDoc(doc(db, 'resources', resource.id)));
         alert('File record deleted!');
         onDataChange();
       } catch (err) {
         console.error(err);
-        alert('Failed to delete: ' + (err.message || err));
+        alert('Failed to delete: ' + err.message);
       }
     }
   };
 
+  // Resource Edit Handler
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     try {
@@ -459,20 +646,20 @@ function AppleAdminSuite({ resources, onDataChange }) {
         url: editingTarget.url,
         downloadUrl,
         previewUrl
-      }), 8000, 'Firestore update timed out.');
+      }));
 
       setEditingTarget(null);
       alert('Record updated!');
       onDataChange();
     } catch (err) {
       console.error(err);
-      alert('Failed to update: ' + (err.message || err));
+      alert('Failed to update: ' + err.message);
     }
   };
 
   const filteredResources = resources.filter(res => 
-    (res.title || '').toLowerCase().includes(manageSearch.toLowerCase()) ||
-    (res.subjectName || '').toLowerCase().includes(manageSearch.toLowerCase()) ||
+    res.title.toLowerCase().includes(manageSearch.toLowerCase()) ||
+    res.subjectName?.toLowerCase().includes(manageSearch.toLowerCase()) ||
     (res.description && res.description.toLowerCase().includes(manageSearch.toLowerCase()))
   );
 
@@ -481,13 +668,13 @@ function AppleAdminSuite({ resources, onDataChange }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-[#f5f5f7]">
         <div>
           <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Live Database Management</h2>
-          <p className="text-xs text-[#86868b]">All changes persist immediately for every student across the web.</p>
+          <p className="text-xs text-[#86868b]">Control branches, subjects, and study materials in real-time.</p>
         </div>
 
-        <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7]">
+        <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7] flex-wrap gap-1">
           <button
             onClick={() => setAdminTab('upload')}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
               adminTab === 'upload' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
             }`}
           >
@@ -495,8 +682,26 @@ function AppleAdminSuite({ resources, onDataChange }) {
             <span>Upload</span>
           </button>
           <button
+            onClick={() => setAdminTab('branches')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+              adminTab === 'branches' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+            }`}
+          >
+            <GitBranch className="w-3.5 h-3.5 text-[#5856d6]" />
+            <span>Branches</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('subjects')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+              adminTab === 'subjects' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#ff9500]" />
+            <span>Subjects</span>
+          </button>
+          <button
             onClick={() => setAdminTab('edit')}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
               adminTab === 'edit' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
             }`}
           >
@@ -505,7 +710,7 @@ function AppleAdminSuite({ resources, onDataChange }) {
           </button>
           <button
             onClick={() => setAdminTab('delete')}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
               adminTab === 'delete' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
             }`}
           >
@@ -515,19 +720,197 @@ function AppleAdminSuite({ resources, onDataChange }) {
         </div>
       </div>
 
+      {/* TAB: MANAGE BRANCHES */}
+      {adminTab === 'branches' && (
+        <div className="space-y-6">
+          <form onSubmit={handleAddBranch} className="bg-[#f5f5f7]/80 p-5 rounded-2xl border border-[#d2d2d7]/80 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#1d1d1f]">Add New Engineering Branch</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Code (e.g., BIO)</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., CHEM"
+                  value={newBranchCode}
+                  onChange={(e) => setNewBranchCode(e.target.value)}
+                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3] uppercase"
+                  required
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Full Branch Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., Chemical Engineering"
+                  value={newBranchFullName}
+                  onChange={(e) => setNewBranchFullName(e.target.value)}
+                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3]"
+                  required
+                />
+              </div>
+            </div>
+            <button 
+              type="submit" 
+              disabled={isAddingBranch}
+              className="w-full bg-[#5856d6] hover:bg-[#4b48be] text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md shadow-[#5856d6]/20 disabled:opacity-50"
+            >
+              {isAddingBranch ? 'Adding Branch...' : 'Create Branch'}
+            </button>
+          </form>
+
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#86868b] mb-3">Existing Branches ({branches.length})</h3>
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {branches.map(b => (
+                <div key={b.id || b.branchCode} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-3 rounded-xl border border-[#d2d2d7]/50 flex items-center justify-between transition">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#5856d6] text-white">{b.branchCode}</span>
+                    <span className="text-xs font-medium text-[#1d1d1f]">{b.name}</span>
+                  </div>
+                  <button 
+                    onClick={() => handleDeleteBranch(b)}
+                    className="p-1.5 text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-lg transition"
+                    title="Remove Branch"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: MANAGE SUBJECTS */}
+      {adminTab === 'subjects' && (
+        <div className="space-y-6">
+          <form onSubmit={handleAddSubject} className="bg-[#f5f5f7]/80 p-5 rounded-2xl border border-[#d2d2d7]/80 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#1d1d1f]">Add New Subject</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Select Branch</label>
+                <select 
+                  value={targetBranchForSubject} 
+                  onChange={(e) => setTargetBranchForSubject(e.target.value)}
+                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3]"
+                >
+                  {branches.map(b => (
+                    <option key={b.id || b.branchCode} value={b.branchCode}>{b.branchCode}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Subject Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., Thermodynamics / Signal Processing"
+                  value={newSubjectName}
+                  onChange={(e) => setNewSubjectName(e.target.value)}
+                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3]"
+                  required
+                />
+              </div>
+            </div>
+            <button 
+              type="submit" 
+              disabled={isAddingSubject}
+              className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-2.5 rounded-xl text-xs transition shadow-md shadow-[#0071e3]/20 disabled:opacity-50"
+            >
+              {isAddingSubject ? 'Adding Subject...' : 'Add Subject to Branch'}
+            </button>
+          </form>
+
+          {/* Quick populate button if EIC has few/no subjects */}
+          {subjects.filter(s => s.branchId === 'EIC').length === 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold text-[#0071e3] flex items-center space-x-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Quick Setup: EIC Curriculum</span>
+                </h4>
+                <p className="text-[11px] text-[#86868b] mt-0.5">Pre-populate all 16 standard EIC subjects with one click.</p>
+              </div>
+              <button 
+                onClick={handleSeedEIC} 
+                disabled={isSeeding}
+                className="px-3 py-2 bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-medium rounded-xl transition shadow-sm disabled:opacity-50 shrink-0"
+              >
+                {isSeeding ? 'Populating...' : 'Populate EIC Subjects'}
+              </button>
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#86868b]">Configured Subjects ({subjects.length})</h3>
+              {subjects.filter(s => s.branchId === 'EIC').length > 0 && (
+                <button 
+                  onClick={handleSeedEIC}
+                  disabled={isSeeding}
+                  className="text-[11px] text-[#0071e3] hover:underline font-medium"
+                >
+                  + Add missing standard EIC subjects
+                </button>
+              )}
+            </div>
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {subjects.length > 0 ? (
+                subjects.map(s => (
+                  <div key={s.id} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-3 rounded-xl border border-[#d2d2d7]/50 flex items-center justify-between transition">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#1d1d1f] text-white">{s.branchId}</span>
+                      <span className="text-xs font-medium text-[#1d1d1f]">{s.name}</span>
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteSubject(s)}
+                      className="p-1.5 text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-lg transition"
+                      title="Remove Subject"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-[#86868b] text-center py-6">No subjects created yet. Add one above.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: UPLOAD RESOURCE */}
       {adminTab === 'upload' && (
         <form onSubmit={handleUploadSubmit} className="space-y-5">
-          <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Target Subject</label>
-            <select 
-              value={selectedSubject} 
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
-            >
-              {EIC_SUBJECTS.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Target Branch</label>
+              <select 
+                value={selectedBranch} 
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              >
+                {branches.map(b => (
+                  <option key={b.id || b.branchCode} value={b.branchCode}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Target Subject</label>
+              <select 
+                value={selectedSubject} 
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                required
+              >
+                {branchSubjects.length > 0 ? (
+                  branchSubjects.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))
+                ) : (
+                  <option value="">No subjects in {selectedBranch} (Add in 'Subjects' tab)</option>
+                )}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -558,7 +941,7 @@ function AppleAdminSuite({ resources, onDataChange }) {
             <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Resource Title</label>
             <input 
               type="text" 
-              placeholder="e.g., Tutorial Sheet 1 / Op-Amps Derivation" 
+              placeholder="e.g., Unit 1 Lecture Notes / Practice Sheet 2" 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
@@ -603,7 +986,7 @@ function AppleAdminSuite({ resources, onDataChange }) {
 
           <button 
             type="submit" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || branchSubjects.length === 0}
             className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20 disabled:opacity-50"
           >
             {isSubmitting ? 'Saving to Database...' : 'Publish to Live Database'}
@@ -611,6 +994,7 @@ function AppleAdminSuite({ resources, onDataChange }) {
         </form>
       )}
 
+      {/* TAB: EDIT / DELETE RESOURCES */}
       {(adminTab === 'edit' || adminTab === 'delete') && (
         <div>
           <div className="relative mb-6">
@@ -635,7 +1019,7 @@ function AppleAdminSuite({ resources, onDataChange }) {
                       </span>
                       <h4 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-sm">{res.title}</h4>
                     </div>
-                    <p className="text-[11px] text-[#86868b]">{res.subjectName} • {res.size || 'PDF'}</p>
+                    <p className="text-[11px] text-[#86868b]">{res.branchId ? `${res.branchId} • ` : ''}{res.subjectName} • {res.size || 'PDF'}</p>
                   </div>
 
                   <div className="shrink-0">
