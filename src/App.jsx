@@ -305,14 +305,10 @@ export default function App() {
 
           {viewMode === 'admin' && (
             <button 
-              onClick={() => {
-                setViewMode('viewer');
-                // Cleans the URL bar completely without leaving a hanging '#'
-                window.history.replaceState(null, '', window.location.pathname);
-              }}
-              className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm"
+              onClick={handleLogout}
+              className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm ml-2"
             >
-              Exit Admin
+              Log Out & Exit Admin
             </button>
           )}
         </div>
