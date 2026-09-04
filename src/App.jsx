@@ -172,15 +172,22 @@ export default function App() {
     setSearchQuery('');
   }, [selectedBranch, subjects]);
 
-  // Automatically keep user logged in across refreshes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setIsAuthenticated(!!user);
       if (user) {
-        setViewMode('admin');
+        setIsAuthenticated(true);
+        // Only jump directly to admin if the secret hash is explicitly present in the URL
+        const hash = decodeURIComponent(window.location.hash);
+        if (hash === '#parth!' || window.location.hash === '#parth!') {
+          setViewMode('admin');
+        }
+      } else {
+        setIsAuthenticated(false);
+        setViewMode('viewer');
       }
     });
+
     return () => unsubscribe();
   }, []);
 
