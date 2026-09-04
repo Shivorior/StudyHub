@@ -196,32 +196,29 @@ export default function App() {
     const handleHashChange = () => {
       const hash = decodeURIComponent(window.location.hash);
       if (hash === '#parth!' || window.location.hash === '#parth!') {
-        if (currentUser) {
-          setViewMode('admin');
-        } else {
-          setIsAdminOpen(true);
-        }
+        // Clean the URL bar so the secret codeword disappears immediately
+        window.history.replaceState(null, '', window.location.pathname);
+        // Open the login prompt
+        setIsAdminOpen(true);
       }
     };
 
     const initialHash = decodeURIComponent(window.location.hash);
     if (initialHash === '#parth!' || window.location.hash === '#parth!') {
-      if (currentUser) {
-        setViewMode('admin');
-      } else {
-        setIsAdminOpen(true);
-      }
+      window.history.replaceState(null, '', window.location.pathname);
+      setIsAdminOpen(true);
     }
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [currentUser]);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, emailInput, passwordInput);
       setIsAuthenticated(true);
+      setViewMode('admin');
       setIsAdminOpen(false);
       setEmailInput('');
       setPasswordInput('');
@@ -676,7 +673,7 @@ export default function App() {
       )}
 
       {/* Admin Auth Modal */}
-      {isAdminOpen && !currentUser && (
+      {isAdminOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl relative ${
             darkMode ? 'bg-[#1c1c1f] border-white/10' : 'bg-white/90 border-[#d2d2d7]'
