@@ -134,13 +134,20 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans selection:bg-blue-500 selection:text-white">
       <header className="sticky top-0 z-40 bg-[#f5f5f7]/80 backdrop-blur-md border-b border-[#d2d2d7]/60 px-8 py-4 flex justify-between items-center transition-all">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white font-bold text-xs">S</div>
-          <div>
-            <h1 className="text-[17px] font-semibold tracking-tight text-[#1d1d1f]">StudyHub.</h1>
-            <p className="text-[11px] text-[#86868b]">Second Year Academic Portal</p>
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+          className="flex items-center space-x-3 text-left group focus:outline-none transition-transform active:scale-95"
+        >
+          <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white font-bold text-xs group-hover:bg-[#0071e3] transition-colors">
+            A
           </div>
-        </div>
+          <div>
+            <h1 className="text-[17px] font-semibold tracking-tight text-[#1d1d1f] group-hover:text-[#0071e3] transition-colors">
+              Academic Portal
+            </h1>
+            <p className="text-[11px] text-[#86868b]">Second Year Engineering</p>
+          </div>
+        </button>
         
         {viewMode === 'admin' && (
           <button 
