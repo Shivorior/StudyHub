@@ -4,7 +4,7 @@ import {
   Search, Trash2, Edit3, PlusCircle, BookOpen, GitBranch, Moon, Sun, 
   Bookmark, Star, ArrowDownToLine, Sparkles 
 } from 'lucide-react';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { 
   collection, 
   addDoc, 
@@ -13,6 +13,7 @@ import {
   updateDoc, 
   doc 
 } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
 const SEED_BRANCHES = [
   { branchCode: 'EIC', name: 'Electronics Instrumentation & Control (EIC)' },
@@ -70,8 +71,9 @@ export default function App() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
   const [viewMode, setViewMode] = useState('viewer'); 
 
   // Feature 1: Dark Mode
@@ -169,25 +171,54 @@ export default function App() {
     setSearchQuery('');
   }, [selectedBranch, subjects]);
 
+  // Automatically keep user logged in across refreshes
   useEffect(() => {
-    const handleHashChange = () => {
-      if (window.location.hash === '#admin') setIsAdminOpen(true);
-    };
-    if (window.location.hash === '#admin') setIsAdminOpen(true);
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setViewMode('admin');
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (passwordInput === 'shivay123') {
-      setIsAuthenticated(true);
-      setViewMode('admin');
-      setIsAdminOpen(false);
-      setPasswordInput('');
-    } else {
-      alert('Incorrect Password');
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') {
+        if (currentUser) {
+          setViewMode('admin');
+        } else {
+          setIsAdminOpen(true);
+        }
+      }
+    };
+    if (window.location.hash === '#admin') {
+      if (currentUser) {
+        setViewMode('admin');
+      } else {
+        setIsAdminOpen(true);
+      }
     }
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [currentUser]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+      setIsAdminOpen(false);
+      setEmailInput('');
+      setPasswordInput('');
+    } catch (error) {
+      alert('Invalid admin credentials: ' + (error.message || 'Please check your email and password.'));
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setViewMode('viewer');
+    window.location.hash = '';
   };
 
   const currentBranchSubjects = subjects.filter(s => s.branchId === selectedBranch);
@@ -261,13 +292,10 @@ export default function App() {
 
           {viewMode === 'admin' && (
             <button 
-              onClick={() => {
-                setViewMode('viewer');
-                window.location.hash = '';
-              }}
+              onClick={handleLogout}
               className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm ml-2"
             >
-              Exit Admin
+              Sign Out (Exit Admin)
             </button>
           )}
         </div>
@@ -618,8 +646,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Password Modal */}
-      {isAdminOpen && !isAuthenticated && (
+      {/* Admin Auth Modal */}
+      {isAdminOpen && !currentUser && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl relative ${
             darkMode ? 'bg-[#1c1c1f] border-white/10' : 'bg-white/90 border-[#d2d2d7]'
@@ -635,9 +663,20 @@ export default function App() {
                 <Lock className="w-6 h-6" />
               </div>
               <h3 className="font-semibold text-xl tracking-tight">Admin Authorization</h3>
-              <p className="text-xs text-[#86868b] mt-1">Enter your password to unlock the admin suite.</p>
+              <p className="text-xs text-[#86868b] mt-1">Sign in with Firebase Admin credentials.</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
+              <input 
+                type="email"
+                placeholder="Admin Email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition ${
+                  darkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
+                autoFocus
+                required
+              />
               <input 
                 type="password"
                 placeholder="Password"
@@ -646,10 +685,10 @@ export default function App() {
                 className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition ${
                   darkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
                 }`}
-                autoFocus
+                required
               />
               <button type="submit" className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-[#0071e3]/20">
-                Continue
+                Sign In to Admin
               </button>
             </form>
           </div>
