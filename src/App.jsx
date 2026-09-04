@@ -232,12 +232,21 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth); // Destroys the Firebase session
-      setIsAuthenticated(false);
-      setViewMode('viewer');
-      window.history.replaceState(null, '', window.location.pathname);
+      if (auth) {
+        await signOut(auth);
+      }
     } catch (err) {
       console.error("Sign out error:", err);
+    } finally {
+      // CRITICAL: Reset both flags so the modal asks for credentials every time
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      setIsAdminOpen(false);
+      setViewMode('viewer');
+      setPasswordInput('');
+      setEmailInput('');
+      // Clean the URL address bar completely
+      window.history.replaceState(null, '', window.location.pathname);
     }
   };
 
