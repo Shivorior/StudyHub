@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, Search, Trash2, Edit3, PlusCircle, BookOpen, Layers, GitBranch, Sparkles } from 'lucide-react';
+import { 
+  Lock, X, Upload, FileText, Download, Eye, ChevronRight, Clock, 
+  Search, Trash2, Edit3, PlusCircle, BookOpen, GitBranch, Moon, Sun, 
+  Bookmark, Star, ArrowDownToLine, Sparkles 
+} from 'lucide-react';
 import { db } from './firebase';
 import { 
   collection, 
@@ -10,7 +14,6 @@ import {
   doc 
 } from 'firebase/firestore';
 
-// Initial fallback seeds if Firestore is completely brand new
 const SEED_BRANCHES = [
   { branchCode: 'EIC', name: 'Electronics Instrumentation & Control (EIC)' },
   { branchCode: 'CSE', name: 'Computer Science & Engineering (CSE)' },
@@ -71,6 +74,18 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [viewMode, setViewMode] = useState('viewer'); 
 
+  // Feature 1: Dark Mode
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('studyhub_theme') === 'dark';
+  });
+
+  // Feature 2: Bookmarks / Favorites Drawer
+  const [bookmarks, setBookmarks] = useState(() => {
+    const saved = localStorage.getItem('studyhub_bookmarks');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
+
   // Viewer state
   const [selectedBranch, setSelectedBranch] = useState('EIC');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -78,7 +93,37 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [previewItem, setPreviewItem] = useState(null);
 
-  // Fetch branches, subjects, and resources
+  useEffect(() => {
+    localStorage.setItem('studyhub_theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  const toggleBookmark = (item) => {
+    setBookmarks(prev => {
+      const exists = prev.some(b => b.id === item.id);
+      const updated = exists ? prev.filter(b => b.id !== item.id) : [...prev, item];
+      localStorage.setItem('studyhub_bookmarks', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Feature 3: Download All Current Tab Items
+  const handleDownloadAll = (itemsToDownload) => {
+    if (!itemsToDownload || itemsToDownload.length === 0) return;
+    if (confirm(`Download all ${itemsToDownload.length} files in this view?`)) {
+      itemsToDownload.forEach((item, index) => {
+        setTimeout(() => {
+          const downloadLink = document.createElement('a');
+          downloadLink.href = item.downloadUrl || item.url;
+          downloadLink.setAttribute('download', item.title || 'document');
+          downloadLink.setAttribute('target', '_blank');
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        }, index * 400); // Stagger requests to avoid browser popup blockers
+      });
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -92,7 +137,6 @@ export default function App() {
       const loadedSubjects = subjSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       let loadedBranches = branchSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // Auto-seed default branches if database collection is empty
       if (loadedBranches.length === 0) {
         loadedBranches = SEED_BRANCHES.map((b, idx) => ({ id: `default-${idx}`, ...b }));
       }
@@ -115,7 +159,6 @@ export default function App() {
     fetchData();
   }, []);
 
-  // Update active subject when switching branches
   useEffect(() => {
     const branchSubjs = subjects.filter(s => s.branchId === selectedBranch);
     if (branchSubjs.length > 0) {
@@ -126,7 +169,6 @@ export default function App() {
     setSearchQuery('');
   }, [selectedBranch, subjects]);
 
-  // Hash listener for #admin
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash === '#admin') setIsAdminOpen(true);
@@ -151,7 +193,7 @@ export default function App() {
   const currentBranchSubjects = subjects.filter(s => s.branchId === selectedBranch);
   const currentSubjectData = currentBranchSubjects.find(s => s.id === selectedSubject);
 
-  // Match resources by ID or subject name for backwards compatibility
+  // Backwards-compatible resource matching
   const activeSubjectResources = resources.filter(r => 
     r.subjectId === selectedSubject || 
     (currentSubjectData && (r.subjectName === currentSubjectData.name || r.subjectId === currentSubjectData.name.toLowerCase()))
@@ -165,43 +207,80 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] font-sans selection:bg-blue-500 selection:text-white">
-      <header className="sticky top-0 z-40 bg-[#f5f5f7]/80 backdrop-blur-md border-b border-[#d2d2d7]/60 px-8 py-4 flex justify-between items-center transition-all">
-        {/* Scroll-to-top Header Brand */}
+    <div className={`min-h-screen font-sans transition-colors duration-200 ${
+      darkMode ? 'bg-[#121214] text-[#f5f5f7] selection:bg-[#0071e3]' : 'bg-[#f5f5f7] text-[#1d1d1f] selection:bg-blue-500 selection:text-white'
+    }`}>
+      {/* Header */}
+      <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-8 py-4 flex justify-between items-center transition-colors ${
+        darkMode ? 'bg-[#121214]/80 border-white/10' : 'bg-[#f5f5f7]/80 border-[#d2d2d7]/60'
+      }`}>
         <button 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
           className="flex items-center space-x-3 text-left group focus:outline-none transition-transform active:scale-95"
         >
-          <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white font-bold text-xs group-hover:bg-[#0071e3] transition-colors">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
+            darkMode ? 'bg-white text-black group-hover:bg-[#0071e3] group-hover:text-white' : 'bg-black text-white group-hover:bg-[#0071e3]'
+          }`}>
             A
           </div>
           <div>
-            <h1 className="text-[17px] font-semibold tracking-tight text-[#1d1d1f] group-hover:text-[#0071e3] transition-colors">
+            <h1 className="text-[17px] font-semibold tracking-tight transition-colors group-hover:text-[#0071e3]">
               Academic Portal
             </h1>
             <p className="text-[11px] text-[#86868b]">Second Year Engineering</p>
           </div>
         </button>
-        
-        {viewMode === 'admin' && (
-          <button 
-            onClick={() => {
-              setViewMode('viewer');
-              window.location.hash = '';
-            }}
-            className="text-xs font-medium bg-[#1d1d1f] text-white hover:bg-black px-4 py-2 rounded-full transition shadow-sm"
+
+        <div className="flex items-center space-x-2.5">
+          {/* Favorites Drawer Toggle */}
+          <button
+            onClick={() => setIsBookmarkDrawerOpen(true)}
+            className={`p-2 rounded-xl transition relative flex items-center justify-center ${
+              darkMode ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-black/5 hover:bg-black/10 text-black'
+            }`}
+            title="Saved Bookmarks"
           >
-            Exit Admin Panel
+            <Bookmark className="w-4 h-4" />
+            {bookmarks.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#0071e3] text-white rounded-full text-[9px] font-bold flex items-center justify-center">
+                {bookmarks.length}
+              </span>
+            )}
           </button>
-        )}
+
+          {/* Dark / Light Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`p-2 rounded-xl transition flex items-center justify-center ${
+              darkMode ? 'bg-white/5 hover:bg-white/10 text-amber-400' : 'bg-black/5 hover:bg-black/10 text-neutral-600'
+            }`}
+            title="Toggle theme"
+          >
+            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+
+          {viewMode === 'admin' && (
+            <button 
+              onClick={() => {
+                setViewMode('viewer');
+                window.location.hash = '';
+              }}
+              className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm ml-2"
+            >
+              Exit Admin
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-10">
         {viewMode === 'viewer' ? (
           <div>
             <div className="text-center max-w-2xl mx-auto mb-10">
-              <h2 className="text-3xl font-semibold tracking-tight text-[#1d1d1f] mb-2">Second Year Curriculum</h2>
-              <p className="text-[#86868b] text-sm mb-6">Select your engineering branch to access curriculum materials.</p>
+              <h2 className="text-3xl font-semibold tracking-tight mb-2">Second Year Curriculum</h2>
+              <p className={`text-sm mb-6 ${darkMode ? 'text-neutral-400' : 'text-[#86868b]'}`}>
+                Select your engineering branch to access curriculum materials.
+              </p>
               
               <div className="flex flex-wrap justify-center gap-2">
                 {branches.map(branch => (
@@ -210,8 +289,8 @@ export default function App() {
                     onClick={() => setSelectedBranch(branch.branchCode)}
                     className={`px-4 py-2 rounded-full text-xs font-medium transition shadow-sm ${
                       selectedBranch === branch.branchCode 
-                        ? 'bg-[#1d1d1f] text-white' 
-                        : 'bg-white/80 border border-[#d2d2d7] text-[#1d1d1f] hover:bg-white'
+                        ? (darkMode ? 'bg-white text-black' : 'bg-[#1d1d1f] text-white')
+                        : (darkMode ? 'bg-white/5 border border-white/10 text-white hover:bg-white/10' : 'bg-white/80 border border-[#d2d2d7] text-[#1d1d1f] hover:bg-white')
                     }`}
                   >
                     {branch.name}
@@ -221,18 +300,20 @@ export default function App() {
             </div>
 
             {currentBranchSubjects.length === 0 ? (
-              <div className="bg-white/60 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-16 text-center max-w-xl mx-auto shadow-sm">
+              <div className={`border rounded-3xl p-16 text-center max-w-xl mx-auto shadow-sm ${
+                darkMode ? 'bg-white/5 border-white/10' : 'bg-white/60 border-[#d2d2d7]'
+              }`}>
                 <div className="w-14 h-14 bg-[#0071e3]/10 text-[#0071e3] rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Clock className="w-7 h-7" />
                 </div>
-                <h3 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-2">Coming Soon</h3>
-                <p className="text-[#86868b] text-sm">
+                <h3 className="text-2xl font-semibold tracking-tight mb-2">Coming Soon</h3>
+                <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-[#86868b]'}`}>
                   No subjects have been configured for {selectedBranch} yet. Add them in the Admin Panel.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Subjects Column */}
+                {/* Subjects Navigation */}
                 <div className="lg:col-span-1 space-y-2">
                   <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#86868b] px-3 mb-3">{selectedBranch} Subjects</h3>
                   {currentBranchSubjects.map(subject => (
@@ -242,10 +323,12 @@ export default function App() {
                         setSelectedSubject(subject.id);
                         setSearchQuery('');
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 origin-left hover:scale-105 active:scale-95 hover:z-20 hover:shadow-lg flex items-center justify-between ${
+                      className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 origin-left hover:scale-105 active:scale-95 hover:z-20 hover:shadow-lg flex items-center justify-between border ${
                         selectedSubject === subject.id
-                          ? 'bg-[#0071e3] text-white shadow-md shadow-[#0071e3]/25 scale-105 z-10'
-                          : 'bg-white/70 hover:bg-white text-[#1d1d1f] border border-[#d2d2d7]/60 hover:border-[#86868b]/60'
+                          ? 'bg-[#0071e3] text-white border-[#0071e3] shadow-md shadow-[#0071e3]/25 scale-105 z-10'
+                          : darkMode 
+                            ? 'bg-white/5 border-white/5 hover:bg-white/10 text-white' 
+                            : 'bg-white/70 hover:bg-white text-[#1d1d1f] border-[#d2d2d7]/60 hover:border-[#86868b]/60'
                       }`}
                     >
                       <span className="truncate pr-2">{subject.name}</span>
@@ -254,31 +337,59 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Content Viewer Column */}
-                <div className="lg:col-span-3 bg-white/80 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#f5f5f7]">
+                {/* Content Viewer */}
+                <div className={`lg:col-span-3 backdrop-blur-xl border rounded-3xl p-8 shadow-sm ${
+                  darkMode ? 'bg-[#1a1a1e]/80 border-white/10' : 'bg-white/80 border-[#d2d2d7]'
+                }`}>
+                  <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b ${
+                    darkMode ? 'border-white/10' : 'border-[#f5f5f7]'
+                  }`}>
                     <div>
-                      <h3 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">{currentSubjectData ? currentSubjectData.name : 'Select a Subject'}</h3>
+                      <h3 className="text-2xl font-semibold tracking-tight">{currentSubjectData ? currentSubjectData.name : 'Select a Subject'}</h3>
                       <p className="text-xs text-[#86868b] mt-1">Preview items in-browser or download them instantly.</p>
                     </div>
 
-                    <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7]">
-                      <button
-                        onClick={() => setActiveTab('files')}
-                        className={`px-4 py-2 rounded-lg text-xs font-medium transition ${
-                          activeTab === 'files' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
-                        }`}
-                      >
-                        Class PPTs & Notes ({subjectFiles.length})
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('tutorials')}
-                        className={`px-4 py-2 rounded-lg text-xs font-medium transition ${
-                          activeTab === 'tutorials' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
-                        }`}
-                      >
-                        Tutorial Sheets ({subjectTutorials.length})
-                      </button>
+                    <div className="flex items-center gap-2">
+                      {/* Download All Action */}
+                      {filteredDisplayItems.length > 0 && (
+                        <button
+                          onClick={() => handleDownloadAll(filteredDisplayItems)}
+                          className={`px-3 py-2 rounded-xl text-xs font-medium border flex items-center space-x-1.5 transition ${
+                            darkMode 
+                              ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white' 
+                              : 'bg-white border-[#d2d2d7] hover:bg-[#f5f5f7] text-[#1d1d1f]'
+                          }`}
+                          title="Download all items shown in this tab"
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5 text-[#0071e3]" />
+                          <span className="hidden md:inline">Download Tab</span>
+                        </button>
+                      )}
+
+                      <div className={`flex p-1 rounded-xl border ${
+                        darkMode ? 'bg-black/30 border-white/10' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                      }`}>
+                        <button
+                          onClick={() => setActiveTab('files')}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                            activeTab === 'files' 
+                              ? (darkMode ? 'bg-white/15 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                              : 'text-[#86868b] hover:text-current'
+                          }`}
+                        >
+                          Notes ({subjectFiles.length})
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('tutorials')}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                            activeTab === 'tutorials' 
+                              ? (darkMode ? 'bg-white/15 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                              : 'text-[#86868b] hover:text-current'
+                          }`}
+                        >
+                          Sheets ({subjectTutorials.length})
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -289,7 +400,11 @@ export default function App() {
                       placeholder={`Search in ${currentSubjectData ? currentSubjectData.name : ''}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
+                      className={`w-full border rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none focus:border-[#0071e3] transition shadow-inner ${
+                        darkMode 
+                          ? 'bg-black/20 border-white/10 text-white placeholder-neutral-500' 
+                          : 'bg-[#f5f5f7] border-[#d2d2d7] text-[#1d1d1f]'
+                      }`}
                     />
                   </div>
 
@@ -298,33 +413,69 @@ export default function App() {
                   ) : (
                     <div className="space-y-3">
                       {filteredDisplayItems.length > 0 ? (
-                        filteredDisplayItems.map((item) => (
-                          <div key={item.id} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <FileText className={`w-4 h-4 ${item.category === 'files' ? 'text-[#0071e3]' : 'text-[#34c759]'}`} />
-                                <h4 className="text-sm font-semibold text-[#1d1d1f]">{item.title}</h4>
+                        filteredDisplayItems.map((item) => {
+                          const isBookmarked = bookmarks.some(b => b.id === item.id);
+                          return (
+                            <div 
+                              key={item.id} 
+                              className={`p-4 rounded-2xl border transition flex items-center justify-between ${
+                                darkMode 
+                                  ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5' 
+                                  : 'bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] border-[#d2d2d7]/50'
+                              }`}
+                            >
+                              <div className="pr-3">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <FileText className={`w-4 h-4 ${item.category === 'files' ? 'text-[#0071e3]' : 'text-[#34c759]'}`} />
+                                  <h4 className="text-sm font-semibold">{item.title}</h4>
+                                </div>
+                                {item.description && <p className="text-xs text-[#86868b] ml-6">{item.description}</p>}
+                                <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
+                                  {item.size && <span>{item.size}</span>}
+                                  {item.instructor && <span>• {item.instructor}</span>}
+                                </div>
                               </div>
-                              {item.description && <p className="text-xs text-[#86868b] ml-6">{item.description}</p>}
-                              <div className="flex items-center space-x-3 ml-6 mt-2 text-[10px] text-[#86868b]">
-                                {item.size && <span>{item.size}</span>}
-                                {item.instructor && <span>• {item.instructor}</span>}
+
+                              <div className="flex items-center space-x-2 shrink-0">
+                                {/* Star Bookmark Button */}
+                                <button
+                                  onClick={() => toggleBookmark(item)}
+                                  className={`p-2 rounded-xl transition ${
+                                    isBookmarked 
+                                      ? 'text-amber-400 bg-amber-400/10' 
+                                      : (darkMode ? 'text-neutral-500 hover:text-white hover:bg-white/5' : 'text-neutral-400 hover:text-black hover:bg-black/5')
+                                  }`}
+                                  title={isBookmarked ? "Remove Bookmark" : "Bookmark Resource"}
+                                >
+                                  <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400' : ''}`} />
+                                </button>
+
+                                <button
+                                  onClick={() => setPreviewItem(item)}
+                                  className={`px-3 py-2 text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5 ${
+                                    darkMode 
+                                      ? 'bg-white/10 hover:bg-white/15 text-white' 
+                                      : 'bg-white hover:bg-[#e8e8ed] text-[#1d1d1f]'
+                                  }`}
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
+                                  <span>Preview</span>
+                                </button>
+                                
+                                <a 
+                                  href={item.downloadUrl || item.url} 
+                                  download 
+                                  className={`p-2 text-[#0071e3] rounded-xl shadow-sm transition ${
+                                    darkMode ? 'bg-white/10 hover:bg-white/15' : 'bg-white hover:bg-[#e8e8ed]'
+                                  }`} 
+                                  title="Download"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </a>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2 shrink-0">
-                              <button
-                                onClick={() => setPreviewItem(item)}
-                                className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#1d1d1f] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
-                                <span>Preview</span>
-                              </button>
-                              <a href={item.downloadUrl || item.url} download className="p-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] rounded-xl shadow-sm transition" title="Download">
-                                <Download className="w-4 h-4" />
-                              </a>
-                            </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <p className="text-xs text-[#86868b] text-center py-10">No materials uploaded here yet.</p>
                       )}
@@ -339,18 +490,108 @@ export default function App() {
             resources={resources} 
             subjects={subjects}
             branches={branches}
+            darkMode={darkMode}
             onDataChange={fetchData} 
           />
         )}
       </main>
 
+      {/* Bookmarks Drawer */}
+      {isBookmarkDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs">
+          <div className={`w-full max-w-md h-full p-6 shadow-2xl flex flex-col justify-between transition-transform duration-300 ${
+            darkMode ? 'bg-[#1c1c1f] text-white border-l border-white/10' : 'bg-white text-[#1d1d1f] border-l border-[#d2d2d7]'
+          }`}>
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Bookmark className="w-4 h-4 text-[#0071e3]" />
+                  <h3 className="font-semibold text-base">Quick Bookmarks ({bookmarks.length})</h3>
+                </div>
+                <button 
+                  onClick={() => setIsBookmarkDrawerOpen(false)}
+                  className={`p-1.5 rounded-full ${darkMode ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {bookmarks.length === 0 ? (
+                <div className="text-center py-16 text-[#86868b]">
+                  <Star className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">No bookmarks saved yet.</p>
+                  <p className="text-[10px] mt-1">Star items in subjects to access them quickly here.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1">
+                  {bookmarks.map((b) => (
+                    <div 
+                      key={b.id} 
+                      className={`p-3 rounded-2xl border flex items-center justify-between ${
+                        darkMode ? 'bg-white/5 border-white/5' : 'bg-[#f5f5f7] border-[#d2d2d7]/60'
+                      }`}
+                    >
+                      <div className="pr-2 truncate">
+                        <p className="text-xs font-semibold truncate">{b.title}</p>
+                        <p className="text-[10px] text-[#86868b] mt-0.5">{b.subjectName || 'Study Material'}</p>
+                      </div>
+                      <div className="flex items-center space-x-1.5 shrink-0">
+                        <button
+                          onClick={() => {
+                            setPreviewItem(b);
+                            setIsBookmarkDrawerOpen(false);
+                          }}
+                          className={`p-1.5 rounded-lg text-xs ${darkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-black/5'}`}
+                          title="Preview"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-[#0071e3]" />
+                        </button>
+                        <a
+                          href={b.downloadUrl || b.url}
+                          download
+                          className={`p-1.5 rounded-lg text-xs text-[#0071e3] ${darkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-black/5'}`}
+                          title="Download"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </a>
+                        <button
+                          onClick={() => toggleBookmark(b)}
+                          className="p-1.5 text-neutral-400 hover:text-[#ff3b30] transition"
+                          title="Remove"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {bookmarks.length > 0 && (
+              <button
+                onClick={() => handleDownloadAll(bookmarks)}
+                className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white py-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition shadow-md"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download All Saved Bookmarks</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* In-Browser Preview Modal */}
       {previewItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-8">
-          <div className="bg-white border border-[#d2d2d7] rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-            <div className="px-6 py-4 border-b border-[#d2d2d7] flex items-center justify-between bg-[#f5f5f7]/80">
+          <div className={`border rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden relative ${
+            darkMode ? 'bg-[#1c1c1f] border-white/10' : 'bg-white border-[#d2d2d7]'
+          }`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${
+              darkMode ? 'bg-black/20 border-white/10' : 'bg-[#f5f5f7]/80 border-[#d2d2d7]'
+            }`}>
               <div>
-                <h3 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-md">{previewItem.title}</h3>
+                <h3 className="text-sm font-semibold truncate max-w-md">{previewItem.title}</h3>
                 <p className="text-[11px] text-[#86868b]">In-browser document preview mode</p>
               </div>
               <div className="flex items-center space-x-3">
@@ -358,12 +599,15 @@ export default function App() {
                   <Download className="w-3.5 h-3.5" />
                   <span>Download</span>
                 </a>
-                <button onClick={() => setPreviewItem(null)} className="p-1.5 bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f] rounded-full transition">
+                <button 
+                  onClick={() => setPreviewItem(null)} 
+                  className={`p-1.5 rounded-full transition ${darkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-[#e8e8ed] hover:bg-[#d2d2d7] text-[#1d1d1f]'}`}
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <div className="flex-1 bg-[#e8e8ed]/40 flex items-center justify-center p-4">
+            <div className="flex-1 bg-black/5 flex items-center justify-center p-4">
               <iframe 
                 src={previewItem.previewUrl || previewItem.url} 
                 title={previewItem.title} 
@@ -374,11 +618,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Admin Authorization Modal */}
+      {/* Password Modal */}
       {isAdminOpen && !isAuthenticated && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white/90 backdrop-blur-xl border border-[#d2d2d7] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
-            <button onClick={() => setIsAdminOpen(false)} className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full">
+          <div className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl relative ${
+            darkMode ? 'bg-[#1c1c1f] border-white/10' : 'bg-white/90 border-[#d2d2d7]'
+          }`}>
+            <button 
+              onClick={() => setIsAdminOpen(false)} 
+              className={`absolute top-5 right-5 p-1 rounded-full ${darkMode ? 'text-neutral-400 hover:text-white bg-white/10' : 'text-[#86868b] hover:text-[#1d1d1f] bg-[#f5f5f7]'}`}
+            >
               <X className="w-4 h-4" />
             </button>
             <div className="text-center mb-6">
@@ -394,7 +643,9 @@ export default function App() {
                 placeholder="Password"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition ${
+                  darkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
                 autoFocus
               />
               <button type="submit" className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-sm transition shadow-lg shadow-[#0071e3]/20">
@@ -408,23 +659,20 @@ export default function App() {
   );
 }
 
-// Admin Management Suite with Branches, Subjects, and Upload Tabs
-function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
+// Admin Management Suite
+function AppleAdminSuite({ resources, subjects, branches, darkMode, onDataChange }) {
   const [adminTab, setAdminTab] = useState('upload');
   const [manageSearch, setManageSearch] = useState('');
 
-  // Branch Form States
   const [newBranchCode, setNewBranchCode] = useState('');
   const [newBranchFullName, setNewBranchFullName] = useState('');
   const [isAddingBranch, setIsAddingBranch] = useState(false);
 
-  // Subject Form States
   const [targetBranchForSubject, setTargetBranchForSubject] = useState(branches[0]?.branchCode || 'EIC');
   const [newSubjectName, setNewSubjectName] = useState('');
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
 
-  // Resource Upload Form States
   const [selectedBranch, setSelectedBranch] = useState(branches[0]?.branchCode || 'EIC');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [resourceType, setResourceType] = useState('files');
@@ -435,7 +683,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
   const [fileUrl, setFileUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Edit target
   const [editingTarget, setEditingTarget] = useState(null);
 
   const branchSubjects = subjects.filter(s => s.branchId === selectedBranch);
@@ -448,7 +695,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   }, [selectedBranch, subjects]);
 
-  // Branch Add Handler
   const handleAddBranch = async (e) => {
     e.preventDefault();
     const code = newBranchCode.trim().toUpperCase();
@@ -478,19 +724,12 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Branch Delete Handler
   const handleDeleteBranch = async (branch) => {
-    const hasSubjects = subjects.some(s => s.branchId === branch.branchCode);
-    const confirmMsg = hasSubjects
-      ? `Warning: "${branch.name}" contains subjects. Deleting this branch will make those subjects inaccessible. Delete anyway?`
-      : `Delete branch "${branch.name}"?`;
-
-    if (confirm(confirmMsg)) {
+    if (confirm(`Delete branch "${branch.name}"?`)) {
       try {
         if (branch.id && !branch.id.startsWith('default-')) {
           await withTimeout(deleteDoc(doc(db, 'branches', branch.id)));
         } else {
-          // If deleting a seed branch for the first time, save the remaining ones to Firestore
           const remaining = branches.filter(b => b.branchCode !== branch.branchCode);
           for (const b of remaining) {
             await addDoc(collection(db, 'branches'), {
@@ -509,7 +748,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Quick Seed Default EIC Subjects
   const handleSeedEIC = async () => {
     if (!confirm('Add the 16 standard EIC curriculum subjects to the database?')) return;
     try {
@@ -534,7 +772,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Subject Add Handler
   const handleAddSubject = async (e) => {
     e.preventDefault();
     if (!newSubjectName.trim()) return alert('Please enter a subject name');
@@ -557,7 +794,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Subject Delete Handler
   const handleDeleteSubject = async (subject) => {
     const hasFiles = resources.some(r => r.subjectId === subject.id || r.subjectName === subject.name);
     const confirmMsg = hasFiles 
@@ -576,7 +812,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Resource Upload Handler
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSubject) return alert('Please select a subject or create one first.');
@@ -617,7 +852,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Resource Delete Handler
   const handleDelete = async (resource) => {
     if (confirm(`Permanently delete "${resource.title}"?`)) {
       try {
@@ -631,7 +865,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
     }
   };
 
-  // Resource Edit Handler
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     try {
@@ -664,18 +897,26 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
   );
 
   return (
-    <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-2xl border border-[#d2d2d7] rounded-3xl p-8 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-[#f5f5f7]">
+    <div className={`max-w-3xl mx-auto border rounded-3xl p-8 shadow-xl ${
+      darkMode ? 'bg-[#1c1c1f] border-white/10 text-white' : 'bg-white/90 border-[#d2d2d7]'
+    }`}>
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b ${
+        darkMode ? 'border-white/10' : 'border-[#f5f5f7]'
+      }`}>
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Live Database Management</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Live Database Management</h2>
           <p className="text-xs text-[#86868b]">Control branches, subjects, and study materials in real-time.</p>
         </div>
 
-        <div className="flex bg-[#f5f5f7] p-1 rounded-xl border border-[#d2d2d7] flex-wrap gap-1">
+        <div className={`flex p-1 rounded-xl border flex-wrap gap-1 ${
+          darkMode ? 'bg-black/30 border-white/10' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+        }`}>
           <button
             onClick={() => setAdminTab('upload')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              adminTab === 'upload' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+              adminTab === 'upload' 
+                ? (darkMode ? 'bg-white/20 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                : 'text-[#86868b] hover:text-current'
             }`}
           >
             <PlusCircle className="w-3.5 h-3.5 text-[#0071e3]" />
@@ -684,7 +925,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
           <button
             onClick={() => setAdminTab('branches')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              adminTab === 'branches' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+              adminTab === 'branches' 
+                ? (darkMode ? 'bg-white/20 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                : 'text-[#86868b] hover:text-current'
             }`}
           >
             <GitBranch className="w-3.5 h-3.5 text-[#5856d6]" />
@@ -693,7 +936,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
           <button
             onClick={() => setAdminTab('subjects')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              adminTab === 'subjects' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+              adminTab === 'subjects' 
+                ? (darkMode ? 'bg-white/20 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                : 'text-[#86868b] hover:text-current'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5 text-[#ff9500]" />
@@ -702,7 +947,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
           <button
             onClick={() => setAdminTab('edit')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              adminTab === 'edit' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+              adminTab === 'edit' 
+                ? (darkMode ? 'bg-white/20 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                : 'text-[#86868b] hover:text-current'
             }`}
           >
             <Edit3 className="w-3.5 h-3.5 text-[#34c759]" />
@@ -711,7 +958,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
           <button
             onClick={() => setAdminTab('delete')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-              adminTab === 'delete' ? 'bg-white text-[#1d1d1f] shadow-sm' : 'text-[#86868b] hover:text-[#1d1d1f]'
+              adminTab === 'delete' 
+                ? (darkMode ? 'bg-white/20 text-white shadow-sm' : 'bg-white text-[#1d1d1f] shadow-sm')
+                : 'text-[#86868b] hover:text-current'
             }`}
           >
             <Trash2 className="w-3.5 h-3.5 text-[#ff3b30]" />
@@ -720,20 +969,23 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
         </div>
       </div>
 
-      {/* TAB: MANAGE BRANCHES */}
       {adminTab === 'branches' && (
         <div className="space-y-6">
-          <form onSubmit={handleAddBranch} className="bg-[#f5f5f7]/80 p-5 rounded-2xl border border-[#d2d2d7]/80 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#1d1d1f]">Add New Engineering Branch</h3>
+          <form onSubmit={handleAddBranch} className={`p-5 rounded-2xl border space-y-4 ${
+            darkMode ? 'bg-white/[0.03] border-white/10' : 'bg-[#f5f5f7]/80 border-[#d2d2d7]/80'
+          }`}>
+            <h3 className="text-xs font-bold uppercase tracking-wider">Add New Engineering Branch</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Code (e.g., BIO)</label>
+                <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Code</label>
                 <input 
                   type="text" 
                   placeholder="e.g., CHEM"
                   value={newBranchCode}
                   onChange={(e) => setNewBranchCode(e.target.value)}
-                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3] uppercase"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none uppercase ${
+                    darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-[#d2d2d7]'
+                  }`}
                   required
                 />
               </div>
@@ -744,7 +996,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                   placeholder="e.g., Chemical Engineering"
                   value={newBranchFullName}
                   onChange={(e) => setNewBranchFullName(e.target.value)}
-                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3]"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${
+                    darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-[#d2d2d7]'
+                  }`}
                   required
                 />
               </div>
@@ -758,41 +1012,42 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
             </button>
           </form>
 
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#86868b] mb-3">Existing Branches ({branches.length})</h3>
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {branches.map(b => (
-                <div key={b.id || b.branchCode} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-3 rounded-xl border border-[#d2d2d7]/50 flex items-center justify-between transition">
-                  <div className="flex items-center space-x-2.5">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#5856d6] text-white">{b.branchCode}</span>
-                    <span className="text-xs font-medium text-[#1d1d1f]">{b.name}</span>
-                  </div>
-                  <button 
-                    onClick={() => handleDeleteBranch(b)}
-                    className="p-1.5 text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-lg transition"
-                    title="Remove Branch"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+            {branches.map(b => (
+              <div key={b.id || b.branchCode} className={`p-3 rounded-xl border flex items-center justify-between transition ${
+                darkMode ? 'bg-white/5 border-white/5' : 'bg-[#f5f5f7]/60 border-[#d2d2d7]/50'
+              }`}>
+                <div className="flex items-center space-x-2.5">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#5856d6] text-white">{b.branchCode}</span>
+                  <span className="text-xs font-medium">{b.name}</span>
                 </div>
-              ))}
-            </div>
+                <button 
+                  onClick={() => handleDeleteBranch(b)}
+                  className="p-1.5 text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-lg transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* TAB: MANAGE SUBJECTS */}
       {adminTab === 'subjects' && (
         <div className="space-y-6">
-          <form onSubmit={handleAddSubject} className="bg-[#f5f5f7]/80 p-5 rounded-2xl border border-[#d2d2d7]/80 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#1d1d1f]">Add New Subject</h3>
+          <form onSubmit={handleAddSubject} className={`p-5 rounded-2xl border space-y-4 ${
+            darkMode ? 'bg-white/[0.03] border-white/10' : 'bg-[#f5f5f7]/80 border-[#d2d2d7]/80'
+          }`}>
+            <h3 className="text-xs font-bold uppercase tracking-wider">Add New Subject</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-semibold text-[#86868b] block mb-1">Select Branch</label>
                 <select 
                   value={targetBranchForSubject} 
                   onChange={(e) => setTargetBranchForSubject(e.target.value)}
-                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3]"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${
+                    darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-[#d2d2d7]'
+                  }`}
                 >
                   {branches.map(b => (
                     <option key={b.id || b.branchCode} value={b.branchCode}>{b.branchCode}</option>
@@ -806,7 +1061,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                   placeholder="e.g., Thermodynamics / Signal Processing"
                   value={newSubjectName}
                   onChange={(e) => setNewSubjectName(e.target.value)}
-                  className="w-full bg-white border border-[#d2d2d7] rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0071e3]"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${
+                    darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-[#d2d2d7]'
+                  }`}
                   required
                 />
               </div>
@@ -856,15 +1113,16 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
             <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {subjects.length > 0 ? (
                 subjects.map(s => (
-                  <div key={s.id} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-3 rounded-xl border border-[#d2d2d7]/50 flex items-center justify-between transition">
+                  <div key={s.id} className={`p-3 rounded-xl border flex items-center justify-between transition ${
+                    darkMode ? 'bg-white/5 border-white/5' : 'bg-[#f5f5f7]/60 border-[#d2d2d7]/50'
+                  }`}>
                     <div className="flex items-center space-x-2.5">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#1d1d1f] text-white">{s.branchId}</span>
-                      <span className="text-xs font-medium text-[#1d1d1f]">{s.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${darkMode ? 'bg-white text-black' : 'bg-[#1d1d1f] text-white'}`}>{s.branchId}</span>
+                      <span className="text-xs font-medium">{s.name}</span>
                     </div>
                     <button 
                       onClick={() => handleDeleteSubject(s)}
                       className="p-1.5 text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-lg transition"
-                      title="Remove Subject"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -878,7 +1136,6 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
         </div>
       )}
 
-      {/* TAB: UPLOAD RESOURCE */}
       {adminTab === 'upload' && (
         <form onSubmit={handleUploadSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
@@ -887,7 +1144,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
               <select 
                 value={selectedBranch} 
                 onChange={(e) => setSelectedBranch(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                  darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
               >
                 {branches.map(b => (
                   <option key={b.id || b.branchCode} value={b.branchCode}>{b.name}</option>
@@ -899,16 +1158,14 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
               <select 
                 value={selectedSubject} 
                 onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                  darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
                 required
               >
-                {branchSubjects.length > 0 ? (
-                  branchSubjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))
-                ) : (
-                  <option value="">No subjects in {selectedBranch} (Add in 'Subjects' tab)</option>
-                )}
+                {branchSubjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -919,7 +1176,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
               <select 
                 value={resourceType} 
                 onChange={(e) => setResourceType(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                  darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
               >
                 <option value="files">Class PPTs & Notes</option>
                 <option value="tutorials">Tutorial Practice Sheet</option>
@@ -932,7 +1191,9 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                 placeholder="e.g., 4.2 MB"
                 value={fileSize} 
                 onChange={(e) => setFileSize(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                  darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
               />
             </div>
           </div>
@@ -941,23 +1202,27 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
             <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Resource Title</label>
             <input 
               type="text" 
-              placeholder="e.g., Unit 1 Lecture Notes / Practice Sheet 2" 
+              placeholder="e.g., Unit 1 Lecture Notes" 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+              }`}
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Instructor / Author</label>
+              <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Instructor</label>
               <input 
                 type="text" 
                 placeholder="e.g., Prof. Sharma" 
                 value={instructor}
                 onChange={(e) => setInstructor(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                  darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
               />
             </div>
             <div>
@@ -967,34 +1232,37 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                 placeholder="https://drive.google.com/..." 
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}
-                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition"
+                className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none ${
+                  darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                }`}
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Description / Topics Covered</label>
+            <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-2">Description</label>
             <textarea 
               placeholder="Add summary notes or problem numbers..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows="2"
-              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] transition resize-none"
+              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none resize-none ${
+                darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+              }`}
             />
           </div>
 
           <button 
             type="submit" 
-            disabled={isSubmitting || branchSubjects.length === 0}
+            disabled={isSubmitting}
             className="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3.5 rounded-2xl text-sm transition shadow-lg shadow-[#0071e3]/20 disabled:opacity-50"
           >
-            {isSubmitting ? 'Saving to Database...' : 'Publish to Live Database'}
+            {isSubmitting ? 'Saving...' : 'Publish to Live Database'}
           </button>
         </form>
       )}
 
-      {/* TAB: EDIT / DELETE RESOURCES */}
       {(adminTab === 'edit' || adminTab === 'delete') && (
         <div>
           <div className="relative mb-6">
@@ -1004,59 +1272,60 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
               placeholder={`Search database records to ${adminTab}...`}
               value={manageSearch}
               onChange={(e) => setManageSearch(e.target.value)}
-              className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-2xl pl-11 pr-4 py-3 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] transition shadow-inner"
+              className={`w-full border rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none ${
+                darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+              }`}
             />
           </div>
 
           <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
-            {filteredResources.length > 0 ? (
-              filteredResources.map((res) => (
-                <div key={res.id} className="bg-[#f5f5f7]/60 hover:bg-[#f5f5f7] p-4 rounded-2xl border border-[#d2d2d7]/50 transition flex items-center justify-between">
-                  <div className="pr-4">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${res.category === 'files' ? 'bg-[#0071e3]/10 text-[#0071e3]' : 'bg-[#34c759]/10 text-[#34c759]'}`}>
-                        {res.category === 'files' ? 'PPT/Notes' : 'Tutorial'}
-                      </span>
-                      <h4 className="text-sm font-semibold text-[#1d1d1f] truncate max-w-sm">{res.title}</h4>
-                    </div>
-                    <p className="text-[11px] text-[#86868b]">{res.branchId ? `${res.branchId} • ` : ''}{res.subjectName} • {res.size || 'PDF'}</p>
+            {filteredResources.map((res) => (
+              <div key={res.id} className={`p-4 rounded-2xl border transition flex items-center justify-between ${
+                darkMode ? 'bg-white/5 border-white/5' : 'bg-[#f5f5f7]/60 border-[#d2d2d7]/50'
+              }`}>
+                <div className="pr-4">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${res.category === 'files' ? 'bg-[#0071e3]/10 text-[#0071e3]' : 'bg-[#34c759]/10 text-[#34c759]'}`}>
+                      {res.category === 'files' ? 'PPT/Notes' : 'Tutorial'}
+                    </span>
+                    <h4 className="text-sm font-semibold truncate max-w-sm">{res.title}</h4>
                   </div>
-
-                  <div className="shrink-0">
-                    {adminTab === 'edit' ? (
-                      <button
-                        onClick={() => setEditingTarget({ ...res })}
-                        className="px-3 py-2 bg-white hover:bg-[#e8e8ed] text-[#0071e3] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleDelete(res)}
-                        className="px-3 py-2 bg-white hover:bg-[#ff3b30]/10 text-[#ff3b30] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete</span>
-                      </button>
-                    )}
-                  </div>
+                  <p className="text-[11px] text-[#86868b]">{res.branchId ? `${res.branchId} • ` : ''}{res.subjectName}</p>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs text-[#86868b] text-center py-10">No matching database records found.</p>
-            )}
+
+                <div className="shrink-0">
+                  {adminTab === 'edit' ? (
+                    <button
+                      onClick={() => setEditingTarget({ ...res })}
+                      className="px-3 py-2 bg-[#0071e3]/10 text-[#0071e3] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDelete(res)}
+                      className="px-3 py-2 bg-[#ff3b30]/10 text-[#ff3b30] text-xs font-medium rounded-xl shadow-sm transition flex items-center space-x-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
       {editingTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-[#d2d2d7] rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative">
+          <div className={`border rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative ${
+            darkMode ? 'bg-[#1c1c1f] border-white/10 text-white' : 'bg-white border-[#d2d2d7]'
+          }`}>
             <button 
               onClick={() => setEditingTarget(null)} 
-              className="absolute top-5 right-5 text-[#86868b] hover:text-[#1d1d1f] p-1 bg-[#f5f5f7] rounded-full"
+              className="absolute top-5 right-5 text-[#86868b] p-1 rounded-full"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1070,30 +1339,11 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                   type="text" 
                   value={editingTarget.title}
                   onChange={(e) => setEditingTarget({ ...editingTarget, title: e.target.value })}
-                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none ${
+                    darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                  }`}
                   required
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Instructor</label>
-                  <input 
-                    type="text" 
-                    value={editingTarget.instructor || ''}
-                    onChange={(e) => setEditingTarget({ ...editingTarget, instructor: e.target.value })}
-                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Size</label>
-                  <input 
-                    type="text" 
-                    value={editingTarget.size || ''}
-                    onChange={(e) => setEditingTarget({ ...editingTarget, size: e.target.value })}
-                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
-                  />
-                </div>
               </div>
 
               <div>
@@ -1102,18 +1352,10 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                   type="text" 
                   value={editingTarget.url || ''}
                   onChange={(e) => setEditingTarget({ ...editingTarget, url: e.target.value })}
-                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3]"
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none ${
+                    darkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-[#f5f5f7] border-[#d2d2d7]'
+                  }`}
                   required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-[#86868b] uppercase tracking-wider block mb-1">Description</label>
-                <textarea 
-                  rows="2"
-                  value={editingTarget.description || ''}
-                  onChange={(e) => setEditingTarget({ ...editingTarget, description: e.target.value })}
-                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0071e3] resize-none"
                 />
               </div>
 
@@ -1121,15 +1363,17 @@ function AppleAdminSuite({ resources, subjects, branches, onDataChange }) {
                 <button 
                   type="button" 
                   onClick={() => setEditingTarget(null)}
-                  className="w-1/2 bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] font-medium py-3 rounded-xl text-xs transition"
+                  className={`w-1/2 font-medium py-3 rounded-xl text-xs transition ${
+                    darkMode ? 'bg-white/10 text-white' : 'bg-[#f5f5f7] text-[#1d1d1f]'
+                  }`}
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="w-1/2 bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-xs transition shadow-md shadow-[#0071e3]/20"
+                  className="w-1/2 bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium py-3 rounded-xl text-xs transition"
                 >
-                  Save to Database
+                  Save Changes
                 </button>
               </div>
             </form>
