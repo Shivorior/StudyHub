@@ -74,6 +74,7 @@ export default function App() {
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [viewMode, setViewMode] = useState('viewer'); 
 
   // Feature 1: Dark Mode
@@ -175,6 +176,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setIsAuthenticated(!!user);
       if (user) {
         setViewMode('admin');
       }
@@ -212,6 +214,7 @@ export default function App() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+      setIsAuthenticated(true);
       setIsAdminOpen(false);
       setEmailInput('');
       setPasswordInput('');
@@ -221,9 +224,14 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    setViewMode('viewer');
-    window.history.replaceState(null, '', window.location.pathname);
+    try {
+      await signOut(auth); // Destroys the Firebase session
+      setIsAuthenticated(false);
+      setViewMode('viewer');
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
   };
 
   const currentBranchSubjects = subjects.filter(s => s.branchId === selectedBranch);
