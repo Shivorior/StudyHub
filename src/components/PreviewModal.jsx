@@ -313,7 +313,7 @@ export default function PreviewModal({
               <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800">
                 <span className="text-xs font-mono text-zinc-400 block mb-1">Quick Reference Shell / Command:</span>
                 <code className="text-xs font-mono text-violet-300">
-                  $ curl -sSL https://portal.studyhub.edu/cheatsheets/{item.id} | less
+                  $ curl -sSL https://portal.padhleladle.edu/cheatsheets/{item.id} | less
                 </code>
               </div>
             </div>

@@ -78,12 +78,12 @@ export default function App() {
 
   // Feature 1: Dark Mode
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('studyhub_theme') === 'dark';
+    return (localStorage.getItem('padhleladle_theme') || localStorage.getItem('flowstate_theme') || localStorage.getItem('studyhub_theme')) === 'dark';
   });
 
   // Feature 2: Bookmarks / Favorites Drawer
   const [bookmarks, setBookmarks] = useState(() => {
-    const saved = localStorage.getItem('studyhub_bookmarks');
+    const saved = localStorage.getItem('padhleladle_bookmarks') || localStorage.getItem('flowstate_bookmarks') || localStorage.getItem('studyhub_bookmarks');
     return saved ? JSON.parse(saved) : [];
   });
   const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
@@ -96,14 +96,14 @@ export default function App() {
   const [previewItem, setPreviewItem] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('studyhub_theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('padhleladle_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   const toggleBookmark = (item) => {
     setBookmarks(prev => {
       const exists = prev.some(b => b.id === item.id);
       const updated = exists ? prev.filter(b => b.id !== item.id) : [...prev, item];
-      localStorage.setItem('studyhub_bookmarks', JSON.stringify(updated));
+      localStorage.setItem('padhleladle_bookmarks', JSON.stringify(updated));
       return updated;
     });
   };
@@ -257,11 +257,11 @@ export default function App() {
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
             darkMode ? 'bg-white text-black group-hover:bg-[#0071e3] group-hover:text-white' : 'bg-black text-white group-hover:bg-[#0071e3]'
           }`}>
-            A
+            PL
           </div>
           <div>
             <h1 className="text-[17px] font-semibold tracking-tight transition-colors group-hover:text-[#0071e3]">
-              Academic Portal
+              Padhle Ladle
             </h1>
             <p className="text-[11px] text-[#86868b]">Second Year Engineering</p>
           </div>

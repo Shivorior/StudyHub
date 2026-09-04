@@ -1,4 +1,4 @@
-# StudyHub — Second Year Engineering Academic Portal
+# Padhle Ladle — Second Year Engineering Academic Portal
 
 A modern, responsive web application built with **React**, **Vite**, **Tailwind CSS**, and **Lucide React** designed for organizing second-year engineering class lecture notes (PDFs, PPTs) and tutorial practice sheets.
 

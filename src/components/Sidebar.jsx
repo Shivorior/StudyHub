@@ -83,7 +83,7 @@ export default function Sidebar({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-                  StudyHub
+                  Padhle Ladle
                 </span>
                 <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-violet-500/20 text-violet-400 rounded-md border border-violet-500/30">
                   v2.0
