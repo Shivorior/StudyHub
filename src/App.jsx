@@ -321,7 +321,7 @@ export default function App() {
               onClick={handleLogout}
               className="text-xs font-medium bg-[#0071e3] text-white hover:bg-[#0077ed] px-4 py-2 rounded-full transition shadow-sm ml-2"
             >
-              Log Out & Exit Admin
+              Log Out & Exit
             </button>
           )}
         </div>
